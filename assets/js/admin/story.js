@@ -7,7 +7,8 @@ import { createMap } from '../map/map.js';
 import { sampleElevation, snapToLine, zoneFor, inBounds } from '../geo/geom.js';
 
 const THEMES = ['Water Governance', 'Agrarian Change', 'Oral History', 'Ecology'];
-const MEDIA = { video: ['Video', 'MP4 or WebM, or a link to a video file', 'video/*'], audio: ['Sound clip', 'MP3, WAV or M4A', 'audio/*'], photo: ['Photograph', 'JPG, PNG or WebP · location is read from the photo if it has one', 'image/*'], document: ['Text file', 'PDF, DOCX or TXT to download; or type the transcript below', '.pdf,.doc,.docx,.txt,.odt'] };
+const MAX_UPLOAD_MB = 50;
+const MEDIA = { video: ['Video', 'MP4 or WebM up to 50 MB, or paste a link for longer videos', 'video/*'], audio: ['Sound clip', 'MP3, WAV or M4A, up to 50 MB', 'audio/*'], photo: ['Photograph', 'JPG, PNG or WebP · location is read from the photo if it has one', 'image/*'], document: ['Text file', 'PDF, DOCX or TXT to download; or type the transcript below', '.pdf,.doc,.docx,.txt,.odt'] };
 const ICON = { video: 'M3 6h12v12H3zM15 10l6-3v10l-6-3', audio: 'M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2', photo: 'M3 7h4l2-3h6l2 3h4v13H3zM12 17a4 4 0 100-8 4 4 0 000 8', document: 'M6 3h9l4 4v14H6zM9 12h7M9 16h7' };
 
 const app = document.getElementById('app');
@@ -115,8 +116,8 @@ function uploadsUI() {
   $('[data-vadd]')?.addEventListener('click', () => { const u = $('[data-vurl]').value.trim(); if (!/^https:\/\//.test(u)) { toast('Paste a full https:// link.', true); return; } media.push({ type: 'video', url: u, caption: '' }); $('[data-vurl]').value = ''; itemsUI(); });
 }
 async function addFile(type, f) {
-  const max = type === 'video' ? 200 : 50;
-  if (f.size > max * 1024 * 1024) { toast(`${f.name} is larger than ${max} MB.`, true); return; }
+  // Supabase's free plan accepts files up to 50 MB.
+  if (f.size > MAX_UPLOAD_MB * 1024 * 1024) { toast(`${f.name} is ${(f.size / 1048576).toFixed(0)} MB; the limit is ${MAX_UPLOAD_MB} MB per file.${type === 'video' ? ' Upload the video to YouTube or Vimeo and paste its link instead, or export a smaller version.' : type === 'audio' ? ' Export it as MP3 to make it smaller.' : ''}`, true); return; }
   const item = { type, url: '', caption: '', name: f.name, uploading: true }; media.push(item); itemsUI();
   try {
     if (type === 'photo') { const gps = await readGps(f); if (gps && !$('[data-lat]').value) { $('[data-lat]').value = gps[0].toFixed(5); $('[data-lng]').value = gps[1].toFixed(5); derive(); toast('Location read from the photo.'); } }

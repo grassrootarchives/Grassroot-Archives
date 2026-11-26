@@ -129,6 +129,7 @@ function blockSettings() {
   }));
   el.querySelector('[data-img]')?.addEventListener('change', async e => {
     const f = e.target.files[0]; if (!f) return;
+    if (f.size > 50 * 1024 * 1024) { toast(`${f.name} is larger than the 50 MB upload limit. Export a smaller JPG.`, true); e.target.value = ''; return; }
     try { toast('Uploading image…'); b.image = await upload('media', `pages/${Date.now().toString(36)}-${safeName(f.name)}`, f); markDirty(); blockSettings(); preview(); toast('Image uploaded.'); } catch (err) { toast(errMsg(err), true); }
   });
   el.querySelectorAll('[data-mv]').forEach(x => x.addEventListener('click', () => { const to = sel + Number(x.dataset.mv); [blocks[sel], blocks[to]] = [blocks[to], blocks[sel]]; sel = to; markDirty(); draw(); }));
