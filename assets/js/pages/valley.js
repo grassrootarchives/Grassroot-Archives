@@ -7,6 +7,7 @@ import { siteUrl } from '../config.js';
 import { createMap } from '../map/map.js';
 import { STYLES } from '../map/symbols.js';
 import { mountLegend } from '../map/legend.js';
+import { createRealMap } from '../map/realmap.js';
 import { formatDMS, zoneFor } from '../geo/geom.js';
 
 const THEMES = ['Water Governance', 'Agrarian Change', 'Oral History', 'Ecology'];
@@ -45,16 +46,26 @@ function render(site, valley, template, stories, data) {
       <p class="muted" style="margin:0;font-size:12px">Switch map features on and off in the legend. Drag to move the map; pinch, Ctrl-scroll or use + and − to zoom.</p>
     </aside>
     <div class="mapapp__main">
+      <div class="viewswitch" role="group" aria-label="Map view">
+        <button type="button" data-view="art" aria-pressed="true">Illustrated map</button>
+        <button type="button" data-view="real" aria-pressed="false">Real-world map</button>
+      </div>
       <div class="mapbox">
-        <span class="mapbox__tag">${esc(STYLES[style].name.toUpperCase())}${style === 'contour' ? ` · ${valley.contour_interval} m INTERVAL` : ''}</span>
+        <span class="mapbox__tag" data-tag>${esc(STYLES[style].name.toUpperCase())}${style === 'contour' ? ` · ${valley.contour_interval} m INTERVAL` : ''}</span>
         <div class="mapbox__corner">
           <div class="row"><span class="mapbox__north" aria-label="North is up">N ↑</span>
           <button type="button" class="mapbox__legendbtn" aria-expanded="true" data-legend-toggle>LEGEND ▾</button></div>
+          <div class="basebar" data-basebar hidden>
+            <div class="basebar__row" role="group" aria-label="Background">${[['satellite', 'Satellite'], ['streets', 'Streets'], ['plain', 'Plain']].map(([k, l], i) => `<button type="button" data-base="${k}" aria-pressed="${i === 0}">${l}</button>`).join('')}</div>
+            <label class="check"><input type="checkbox" data-relief checked> Relief shading</label>
+            <label class="check"><input type="checkbox" data-3d> 3D terrain</label>
+          </div>
           <div class="mapbox__legend" data-legend></div>
         </div>
         <div data-map></div>
-        ${(valley.source_credit || valley.layers_credit) ? `<div class="mapbox__credit">MAP DATA: ${esc(valley.source_credit || '')}${valley.layers_credit ? ' · ' + esc(valley.layers_credit) : ''}</div>` : ''}
-        <div class="mapbox__zoom"><button type="button" aria-label="Zoom in" data-zoom="in">+</button><button type="button" aria-label="Zoom out" data-zoom="out">−</button><button type="button" aria-label="Reset view" data-zoom="reset" style="font-size:14px">⟲</button></div>
+        <div class="realbox" data-real hidden></div>
+        ${(valley.source_credit || valley.layers_credit) ? `<div class="mapbox__credit" data-credit>MAP DATA: ${esc(valley.source_credit || '')}${valley.layers_credit ? ' · ' + esc(valley.layers_credit) : ''}</div>` : ''}
+        <div class="mapbox__zoom" data-zoombar><button type="button" aria-label="Zoom in" data-zoom="in">+</button><button type="button" aria-label="Zoom out" data-zoom="out">−</button><button type="button" aria-label="Reset view" data-zoom="reset" style="font-size:14px">⟲</button></div>
       </div>
       ${valley.profile?.length ? `<section class="profile" aria-label="Longitudinal profile">
         <div class="profile__head"><strong>LONGITUDINAL PROFILE</strong><span class="muted">SOURCE ${fmtM(valley.profile[0][1])} · km 0 → MOUTH ${fmtM(valley.profile.at(-1)[1])} · km ${fmtKm(totalKm)}</span></div>
@@ -83,7 +94,7 @@ function render(site, valley, template, stories, data) {
     if (s) {
       tele.innerHTML = `<span class="eyebrow">Active node · ${pad(s.number)}</span><span>${esc(s.place.toUpperCase())}</span><span>ELEV: ${fmtM(s.elevation)} ASL · KM ${fmtKm(s.river_km)}</span><span>ZONE: ${esc((s.zone || '—').toUpperCase())}</span>`;
     } else if (state.cursor) {
-      const c = state.cursor, snap = map.snap(c.lon, c.lat);
+      const c = state.cursor, snap = view.snap(c.lon, c.lat);
       tele.innerHTML = `<span class="eyebrow">Active cursor</span><span>${formatDMS(c.lat, c.lon)}</span><span>ELEV: ${fmtM(c.elevation)} ASL</span><span>NEAREST RIVER KM: ${snap ? fmtKm(snap.km) : '—'}</span>`;
     } else {
       tele.innerHTML = `<span class="eyebrow">${esc(valley.name)}</span><span>${stories.length} ${stories.length === 1 ? 'story' : 'stories'} on the map</span>${totalKm ? `<span>RIVER: ${fmtKm(totalKm)} km</span>` : ''}${valley.region ? `<span>${esc(valley.region)}</span>` : ''}`;
@@ -98,15 +109,59 @@ function render(site, valley, template, stories, data) {
     state[group.dataset.filter] = b.dataset.value;
     group.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
     const dim = stories.filter(s => !matches(s)).map(s => s.id);
-    map.setDim(dim); drawProfile();
+    [map, real].forEach(m => m?.setDim(dim)); drawProfile();
   }));
   // Legend with on/off switches.
-  mountLegend(app.querySelector('[data-legend]'), { map, style, data, interval: valley.contour_interval || 20 });
+  let view = map, real = null;
+  const legendEl = app.querySelector('[data-legend]');
+  mountLegend(legendEl, { map, style, data, interval: valley.contour_interval || 20 });
+  // Illustrated ↔ real-world switch.
+  const artEl = app.querySelector('[data-map]'), realEl = app.querySelector('[data-real]'), tagEl = app.querySelector('[data-tag]');
+  const artTag = tagEl.textContent;
+  const baseLabel = { satellite: 'SATELLITE', streets: 'STREETS', plain: 'PLAIN' };
+  async function setView(v) {
+    app.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
+    const url = new URL(location.href); v === 'real' ? url.searchParams.set('view', 'real') : url.searchParams.delete('view'); history.replaceState(null, '', url);
+    if (v === 'real') {
+      realEl.style.height = Math.max(420, artEl.offsetHeight || 0) + 'px';
+      artEl.hidden = true; realEl.hidden = false;
+      app.querySelector('[data-basebar]').hidden = false;
+      app.querySelector('[data-zoombar]').hidden = true;
+      const cr = app.querySelector('[data-credit]'); if (cr) cr.hidden = true;
+      if (!real) {
+        realEl.innerHTML = '<div class="empty" style="height:100%;display:grid;place-items:center">Loading the real-world map…</div>';
+        try {
+          real = await createRealMap(realEl, { ...data, interval: valley.contour_interval || 20, stories, credit: [valley.source_credit, valley.layers_credit].filter(Boolean).join(' · '),
+            onPinClick: s => openStory(s.id), onPinHover: s => { state.hover = s; telemetry(); }, onCursor: c => { state.cursor = c; if (!state.hover) telemetry(); } });
+          real.setDim(stories.filter(s => !matches(s)).map(s => s.id)); real.setActive(state.open);
+        } catch (err) { realEl.innerHTML = `<div class="empty" style="height:100%;display:grid;place-items:center">${esc(err.message)}</div>`; return; }
+      } else real.resize();
+      view = real;
+      tagEl.textContent = 'REAL-WORLD MAP · ' + baseLabel[real.state.base];
+      mountLegend(legendEl, { map: real, style: 'contour', data, interval: valley.contour_interval || 20 });
+    } else {
+      realEl.hidden = true; artEl.hidden = false;
+      app.querySelector('[data-basebar]').hidden = true;
+      app.querySelector('[data-zoombar]').hidden = false;
+      const cr = app.querySelector('[data-credit]'); if (cr) cr.hidden = false;
+      view = map; tagEl.textContent = artTag;
+      mountLegend(legendEl, { map, style, data, interval: valley.contour_interval || 20 });
+    }
+  }
+  app.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+  app.querySelectorAll('[data-base]').forEach(b => b.addEventListener('click', () => {
+    if (!real) return; real.setBase(b.dataset.base);
+    app.querySelectorAll('[data-base]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    tagEl.textContent = 'REAL-WORLD MAP · ' + baseLabel[b.dataset.base];
+  }));
+  app.querySelector('[data-relief]').addEventListener('change', e => real?.setRelief(e.target.checked));
+  app.querySelector('[data-3d]').addEventListener('change', e => real?.set3D(e.target.checked));
+  if (new URLSearchParams(location.search).get('view') === 'real') setView('real');
   // Legend & zoom.
   const lt = app.querySelector('[data-legend-toggle]'), lg = app.querySelector('[data-legend]');
   lt.addEventListener('click', () => { lg.hidden = !lg.hidden; lt.setAttribute('aria-expanded', !lg.hidden); lt.textContent = lg.hidden ? 'LEGEND ▸' : 'LEGEND ▾'; });
   if (window.matchMedia('(max-width: 720px)').matches) lt.click();
-  app.querySelectorAll('[data-zoom]').forEach(b => b.addEventListener('click', () => ({ in: map.zoomIn, out: map.zoomOut, reset: map.reset })[b.dataset.zoom]()));
+  app.querySelectorAll('[data-zoom]').forEach(b => b.addEventListener('click', () => ({ in: () => map.zoomIn(), out: () => map.zoomOut(), reset: () => map.reset() })[b.dataset.zoom]()));
 
   // Profile.
   function drawProfile() {
@@ -144,7 +199,7 @@ function render(site, valley, template, stories, data) {
     const list = stories.filter(matches).length ? stories.filter(matches) : stories;
     const s = stories.find(x => x.id === id); if (!s) return;
     if (!drawerRoot.innerHTML) lastFocus = document.activeElement;
-    state.open = id; map.setActive(id); drawProfile();
+    state.open = id; map.setActive(id); real?.setActive(id); drawProfile();
     history.replaceState(null, '', '#story-' + id);
     const i = list.indexOf(s);
     drawerRoot.innerHTML = `<div class="drawer-scrim" data-close></div>
@@ -170,7 +225,7 @@ function render(site, valley, template, stories, data) {
     drawerRoot.querySelector('.drawer__bar button').focus();
   }
   function closeStory() {
-    drawerRoot.innerHTML = ''; state.open = null; map.setActive(null); drawProfile();
+    drawerRoot.innerHTML = ''; state.open = null; map.setActive(null); real?.setActive(null); drawProfile();
     history.replaceState(null, '', location.pathname + location.search);
     lastFocus?.focus?.();
   }

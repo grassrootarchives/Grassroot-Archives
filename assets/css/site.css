@@ -230,3 +230,19 @@ table.index td.num { text-align: right; }
 .lg--miniature .lg__title { color: #5A1E1A; font-size: 15px; }
 .lg--miniature .lg__head { color: #5A1E1A; letter-spacing: .08em; }
 .lg--miniature input { accent-color: #9E2A2B; }
+
+/* illustrated / real-world switch */
+.viewswitch { display: inline-flex; align-self: flex-start; border: 1px solid var(--ink); }
+.viewswitch button { min-height: 40px; padding: 0 16px; border: 0; background: var(--surface); color: var(--ink); letter-spacing: .08em; text-transform: uppercase; font-size: 12px; cursor: pointer; }
+.viewswitch button + button { border-left: 1px solid var(--ink); }
+.viewswitch button[aria-pressed="true"] { background: var(--blue); font-weight: 600; }
+.realbox { position: relative; width: 100%; }
+.realmap { width: 100%; height: 100%; }
+.basebar { width: 100%; background: rgba(245,248,246,.97); border: 1px solid #CFDDE4; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #1E2A33; }
+.basebar__row { display: flex; border: 1px solid #1E2A33; margin-bottom: 4px; }
+.basebar__row button { flex: 1; min-height: 32px; border: 0; background: #fff; color: #1E2A33; cursor: pointer; font-size: 11px; }
+.basebar__row button + button { border-left: 1px solid #1E2A33; }
+.basebar__row button[aria-pressed="true"] { background: #BFD9EA; font-weight: 600; }
+.basebar .check { min-height: 28px; }
+.pin.pin--ml { position: relative; transform: none; pointer-events: auto; }
+.realmap .maplibregl-ctrl-attrib { font-size: 10px; }
