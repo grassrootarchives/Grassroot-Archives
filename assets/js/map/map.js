@@ -254,6 +254,7 @@ export function createMap(container, opts) {
   frame.addEventListener('pointerdown', e => {
     if (e.target.closest('.pin')) return;
     frame.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    downAt = [e.clientX, e.clientY];
     if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), w: view.w }; }
   });
   frame.addEventListener('pointermove', e => {
@@ -270,7 +271,14 @@ export function createMap(container, opts) {
     const rect = frame.getBoundingClientRect(); const scale = Math.min(rect.width / view.w, rect.height / view.h);
     view.x -= (e.clientX - prev[0]) / scale; view.y -= (e.clientY - prev[1]) / scale; applyView();
   });
-  const end = e => { pointers.delete(e.pointerId); if (pointers.size < 2) pinchStart = null; };
+  let downAt = null;
+  const end = e => {
+    if (downAt && opts.onMapClick && pointers.size === 1 && Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) < 5) {
+      const [x, y] = clientToSvg(e.clientX, e.clientY);
+      if (x >= 0 && y >= 0 && x <= VW && y <= VH) { const [lon, lat] = toLonLat(x, y); opts.onMapClick({ lon, lat }); }
+    }
+    downAt = null; pointers.delete(e.pointerId); if (pointers.size < 2) pinchStart = null;
+  };
   frame.addEventListener('pointerup', end); frame.addEventListener('pointercancel', end);
   frame.addEventListener('pointerleave', () => opts.onCursor && opts.onCursor(null));
   const ro = new ResizeObserver(() => positionPins()); ro.observe(frame);
@@ -284,6 +292,12 @@ export function createMap(container, opts) {
     setStories(list) { state.stories = list; draw(); },
     setDim(ids) { state.dim = new Set(ids); drawPins(); },
     setActive(id) { state.active = id; drawPins(); },
+    setMarker(lon, lat) {
+      svg.querySelector('[data-marker]')?.remove();
+      if (lon == null) return;
+      const [x, y] = px(lon, lat);
+      svg.insertAdjacentHTML('beforeend', `<g data-marker><circle cx="${x}" cy="${y}" r="9" fill="#C0504A" stroke="#fff" stroke-width="3" vector-effect="non-scaling-stroke"/><circle cx="${x}" cy="${y}" r="16" fill="none" stroke="#C0504A" stroke-width="1.5" vector-effect="non-scaling-stroke"/></g>`);
+    },
     zoomIn() { zoomAt(1.4); }, zoomOut() { zoomAt(1 / 1.4); }, reset() { view = { x: 0, y: 0, w: VW, h: VH }; applyView(); },
     focus(lon, lat) { const [x, y] = px(lon, lat); view.w = Math.min(view.w, VW / 2); view.h = view.w * VH / VW; view.x = x - view.w / 2; view.y = y - view.h / 2; applyView(); },
     project: px, size: [VW, VH],
