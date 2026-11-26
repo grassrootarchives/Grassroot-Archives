@@ -33,7 +33,7 @@ const v = valley || { name: '', slug: '', region: '', intro: '', source_credit: 
 const main = layout(app, 'basins', user, `
   <a href="${esc(siteUrl('admin/index.html'))}" class="muted">← River basins</a>
   <div class="admin__head"><div><span class="eyebrow">${valley ? 'Edit river basin' : 'New river basin'}</span><h1>${esc(valley?.name || 'New river basin')}</h1></div>
-    <div class="row">${valley ? `<span class="status status--${esc(v.status)}">${esc(v.status)}</span><a class="btn btn--quiet" target="_blank" rel="noopener" href="${esc(siteUrl('valley.html?v=' + encodeURIComponent(v.slug)))}">View page ↗</a>` : ''}</div></div>
+    <div class="row">${valley ? `<span class="status status--${esc(v.status)}">${esc(v.status)}</span><a class="btn btn--quiet" href="${esc(siteUrl('admin/history.html?table=valleys&key=' + valley.id))}">History</a><a class="btn btn--quiet" target="_blank" rel="noopener" href="${esc(siteUrl('valley.html?v=' + encodeURIComponent(v.slug)))}">View page ↗</a>` : ''}</div></div>
 
   <section class="panel" aria-labelledby="h-map">
     <h2 id="h-map">01 · Map data</h2>
@@ -268,7 +268,7 @@ async function save(mode) {
     const files = { ...(valley.data || {}) };
     for (const k of ['grid', 'river', 'boundary', 'settlements', 'infra']) {
       if (!S.dirty.has(k) || !S[k]) continue;
-      files[k] = await uploadJSON('maps', `${vid}/${k}.json`, S[k]); note(`Uploaded ${k === 'infra' ? 'water infrastructure' : k}`);
+      files[k] = await uploadJSON('maps', `${vid}/${k}-${Date.now().toString(36)}.json`, S[k]); note(`Uploaded ${k === 'infra' ? 'water infrastructure' : k}`);
     }
     if (S.grid) { row.bounds = S.grid.bounds; row.crs = S.info?.crs || valley.crs; }
     if (S.grid && S.river && (S.dirty.has('grid') || S.dirty.has('river') || !valley.profile)) {

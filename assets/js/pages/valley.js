@@ -6,6 +6,7 @@ import { esc, md, errorBox } from '../ui.js';
 import { siteUrl } from '../config.js';
 import { createMap } from '../map/map.js';
 import { STYLES } from '../map/symbols.js';
+import { mountLegend } from '../map/legend.js';
 import { formatDMS, zoneFor } from '../geo/geom.js';
 
 const THEMES = ['Water Governance', 'Agrarian Change', 'Oral History', 'Ecology'];
@@ -41,13 +42,7 @@ function render(site, valley, template, stories, data) {
       <fieldset><legend class="label">Theme</legend><div class="chips" data-filter="theme">
         ${['All', ...THEMES].map((t, i) => `<button type="button" class="chip" aria-pressed="${i === 0}" data-value="${esc(t)}">${esc(t)}</button>`).join('')}</div></fieldset>
       <div class="telemetry" aria-live="polite" data-telemetry></div>
-      <fieldset><legend class="label">Map layers</legend>
-        <label class="check"><input type="checkbox" checked disabled> Terrain &amp; river</label>
-        <label class="check"><input type="checkbox" checked data-layer="settlements"> Settlements</label>
-        <label class="check"><input type="checkbox" checked data-layer="infra"> Water infrastructure</label>
-        <label class="check"><input type="checkbox" checked data-layer="pins"> Story pins</label>
-      </fieldset>
-      <p class="muted" style="margin:0;font-size:12px">Drag to move the map. Scroll with Ctrl, pinch, or use + and − to zoom.</p>
+      <p class="muted" style="margin:0;font-size:12px">Switch map features on and off in the legend. Drag to move the map; pinch, Ctrl-scroll or use + and − to zoom.</p>
     </aside>
     <div class="mapapp__main">
       <div class="mapbox">
@@ -55,7 +50,7 @@ function render(site, valley, template, stories, data) {
         <div class="mapbox__corner">
           <div class="row"><span class="mapbox__north" aria-label="North is up">N ↑</span>
           <button type="button" class="mapbox__legendbtn" aria-expanded="true" data-legend-toggle>LEGEND ▾</button></div>
-          <div class="mapbox__legend" data-legend><img src="${esc(siteUrl('assets/legends/legend-' + style + '.svg'))}" alt="Map legend: terrain, settlements, water infrastructure and story pins"></div>
+          <div class="mapbox__legend" data-legend></div>
         </div>
         <div data-map></div>
         ${(valley.source_credit || valley.layers_credit) ? `<div class="mapbox__credit">MAP DATA: ${esc(valley.source_credit || '')}${valley.layers_credit ? ' · ' + esc(valley.layers_credit) : ''}</div>` : ''}
@@ -105,8 +100,8 @@ function render(site, valley, template, stories, data) {
     const dim = stories.filter(s => !matches(s)).map(s => s.id);
     map.setDim(dim); drawProfile();
   }));
-  // Layers.
-  app.querySelectorAll('[data-layer]').forEach(cb => cb.addEventListener('change', () => map.setLayers({ [cb.dataset.layer]: cb.checked })));
+  // Legend with on/off switches.
+  mountLegend(app.querySelector('[data-legend]'), { map, style, data, interval: valley.contour_interval || 20 });
   // Legend & zoom.
   const lt = app.querySelector('[data-legend-toggle]'), lg = app.querySelector('[data-legend]');
   lt.addEventListener('click', () => { lg.hidden = !lg.hidden; lt.setAttribute('aria-expanded', !lg.hidden); lt.textContent = lg.hidden ? 'LEGEND ▸' : 'LEGEND ▾'; });

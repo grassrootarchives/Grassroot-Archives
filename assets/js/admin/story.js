@@ -54,7 +54,7 @@ const main = layout(app, 'stories', user, `
       <div class="row" style="padding-top:8px;border-top:1px solid var(--line)">
         <button type="button" class="btn" data-save="draft">Save draft</button>
         <button type="button" class="btn btn--publish" data-save="published">Publish to valley page</button>
-        ${story ? `<button type="button" class="btn btn--danger" data-del>Delete story</button>` : ''}</div>
+        ${story ? `<a class="btn btn--quiet" href="${esc(siteUrl('admin/history.html?table=stories&key=' + story.id))}">History</a><button type="button" class="btn btn--danger" data-del>Delete story</button>` : ''}</div>
       <div data-result></div>
     </section>
   </div>`);

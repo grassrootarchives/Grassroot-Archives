@@ -7,6 +7,7 @@ export const NAV = [
   ['basins', 'River basins', 'admin/index.html'],
   ['stories', 'Stories', 'admin/stories.html'],
   ['pages', 'Pages & design', 'admin/pages.html'],
+  ['history', 'History', 'admin/history.html'],
   ['settings', 'Settings', 'admin/settings.html']
 ];
 

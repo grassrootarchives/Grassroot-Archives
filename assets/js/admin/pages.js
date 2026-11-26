@@ -23,7 +23,7 @@ const NEW = { hero: { title: 'New heading', body: 'Short introduction.', image: 
 
 const main = layout(app, 'pages', user, `
   <div class="admin__head"><div><span class="eyebrow">Pages &amp; design</span><h1>Pages &amp; design</h1></div>
-    <div class="row"><span class="muted" data-status></span><button type="button" class="btn btn--quiet" data-discard>Discard changes</button><button type="button" class="btn" data-draft>Save draft</button><button type="button" class="btn btn--publish" data-publish>Publish</button></div></div>
+    <div class="row"><a class="btn btn--quiet" data-history>History</a><span class="muted" data-status></span><button type="button" class="btn btn--quiet" data-discard>Discard changes</button><button type="button" class="btn" data-draft>Save draft</button><button type="button" class="btn btn--publish" data-publish>Publish</button></div></div>
   <div class="tabs" role="tablist" aria-label="Pages" data-tabs></div>
   <div class="panel" data-newpage hidden></div>
   <div class="editor">
@@ -47,7 +47,7 @@ function load(page) {
   status(page.draft_blocks ? 'Draft not yet published' : page.status === 'draft' ? 'Page is a draft' : 'All changes published', !!page.draft_blocks);
   history.replaceState(null, '', '?p=' + page.slug); draw();
 }
-function draw() { tabs(); lib(); outline(); preview(); pageSettings(); blockSettings(); themePanel(); $('[data-viewlive]').href = hrefFor(current, valleys?.find(v => v.status === 'published')); }
+function draw() { tabs(); lib(); outline(); preview(); pageSettings(); blockSettings(); themePanel(); $('[data-viewlive]').href = hrefFor(current, valleys?.find(v => v.status === 'published')); $('[data-history]').href = siteUrl('admin/history.html?table=pages&key=' + current.id); }
 
 function tabs() {
   $('[data-tabs]').innerHTML = pages.map(p => `<button type="button" role="tab" class="chip" aria-selected="${p.id === current.id}" aria-pressed="${p.id === current.id}" data-tab="${esc(p.id)}">${esc(KIND_LABEL[p.kind] || p.title)}${p.status === 'draft' ? ' · draft' : ''}</button>`).join('') + `<button type="button" class="chip" style="border-style:dashed;font-weight:600" data-newbtn>+ New page</button>`;

@@ -212,3 +212,21 @@ table.index th { padding: 14px 12px; font-weight: 500; color: var(--muted); lett
 table.index td { padding: 16px 12px; border-bottom: 1px solid var(--line); }
 table.index td.name { font-family: var(--font-display); font-size: 19px; }
 table.index td.num { text-align: right; }
+
+/* interactive legend */
+.mapbox__legend { max-height: calc(100% - 200px); min-height: 120px; overflow: auto; }
+.lg { display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 10px; background: rgba(245,248,246,.97); border: 1px solid #CFDDE4; color: #1E2A33; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; }
+.lg__title { font-weight: 700; font-size: 12px; }
+.lg__sec { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.lg__sec legend { padding: 0; margin-bottom: 2px; }
+.lg__head { display: flex; align-items: center; gap: 6px; letter-spacing: .1em; color: #4C5B64; cursor: pointer; min-height: 26px; }
+.lg__row { display: flex; align-items: center; gap: 8px; min-height: 30px; cursor: pointer; }
+.lg input { width: 15px; height: 15px; margin: 0; accent-color: #5E95BE; flex: none; }
+.lg__icon { flex: none; overflow: visible; }
+.lg__row:has(input:not(:checked)) .lg__icon, .lg__row:has(input:not(:checked)) span { opacity: .35; }
+.lg--watercolor { background: rgba(247,243,234,.97); border-color: #DCCFC0; font-family: 'Newsreader', Georgia, serif; font-size: 13px; color: #4A4A52; }
+.lg--watercolor .lg__title, .lg--watercolor .lg__head { font-style: italic; letter-spacing: .04em; color: #5A4A44; }
+.lg--miniature { background: #F3E6C4; border: 4px solid #9E2A2B; box-shadow: inset 0 0 0 2px #C9A441; font-family: 'Newsreader', Georgia, serif; font-size: 13px; color: #3B2416; }
+.lg--miniature .lg__title { color: #5A1E1A; font-size: 15px; }
+.lg--miniature .lg__head { color: #5A1E1A; letter-spacing: .08em; }
+.lg--miniature input { accent-color: #9E2A2B; }

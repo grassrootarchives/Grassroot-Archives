@@ -3,6 +3,7 @@
 import { isolines, simplify, thresholds, gridRange } from '../geo/contour.js';
 import { sampleElevation, snapToLine } from '../geo/geom.js';
 import { STYLES, settlementSymbol, infraSymbol, normaliseType } from './symbols.js';
+import { legendKey } from './legend.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -19,8 +20,10 @@ export function createMap(container, opts) {
     stories: opts.stories || [],
     dim: new Set(),
     active: null,
-    interval: opts.interval || 20
+    interval: opts.interval || 20,
+    hidden: new Set(opts.hidden || [])
   };
+  const off = k => state.hidden.has(k);
   const grid = opts.grid;
   const bounds = opts.bounds || grid.bounds;
   const [W, S, E, N] = bounds;
@@ -77,7 +80,7 @@ export function createMap(container, opts) {
       }
       if (st.upperPattern) ts.slice(Math.floor(ts.length * 0.55)).forEach(t => parts.push(`<path d="${ringsAt(t)}" fill="url(#${st.upperPattern})" fill-rule="evenodd"/>`));
     }
-    if (st.lines) {
+    if (st.lines && !off('contours')) {
       const step = st.lines.step ? Math.max(state.interval, st.lines.step) : state.interval;
       for (const t of thresholds(zlo, zhi, step)) {
         const major = Math.round(t) % (step * 5) === 0;
@@ -87,9 +90,9 @@ export function createMap(container, opts) {
       }
     }
     // Miniature extras: fields and trees.
-    if (st.decor && riverCoords) parts.push(decor(st));
+    if (st.decor && riverCoords && !off('decor')) parts.push(decor(st));
     // Watershed.
-    if (opts.boundary && st.boundary) {
+    if (opts.boundary && st.boundary && !off('boundary')) {
       const rings = opts.boundary.geometry ? opts.boundary.geometry.coordinates : opts.boundary;
       parts.push(`<path d="${polyPath(rings)}" fill="none" stroke="${st.boundary.color}" stroke-width="${st.boundary.width}" stroke-dasharray="${st.boundary.dash}" opacity="${st.boundary.opacity || 1}" vector-effect="non-scaling-stroke"/>`);
     }
@@ -98,6 +101,7 @@ export function createMap(container, opts) {
       for (const f of features(opts.infra)) {
         const t = normaliseType(f.properties?.type);
         const g = f.geometry;
+        if (off(legendKey(t)) || (g.type.includes('Polygon') && off('reservoir'))) continue;
         if (g.type === 'Polygon' || g.type === 'MultiPolygon') {
           const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
           polys.forEach(p => parts.push(st.reservoir(polyPath(p))));
@@ -108,7 +112,7 @@ export function createMap(container, opts) {
       }
     }
     // River.
-    if (riverCoords) parts.push(st.river(linePath(riverCoords)));
+    if (riverCoords && !off('river')) parts.push(st.river(linePath(riverCoords)));
     parts.push('</g>');
     // Point symbols and labels.
     const placed = [];
@@ -127,6 +131,7 @@ export function createMap(container, opts) {
         if (f.geometry.type !== 'Point') continue;
         const [x, y] = px(...f.geometry.coordinates);
         const t = normaliseType(f.properties?.type);
+        if (off(legendKey(t))) continue;
         const ang = Math.atan2(...tangentAt(...f.geometry.coordinates).reverse()) * 180 / Math.PI + 90;
         sym.push(infraSymbol(state.style, t, x, y, ang));
         placed.push([x - 9, y - 9, x + 9, y + 9]);
@@ -139,6 +144,7 @@ export function createMap(container, opts) {
         if (f.geometry.type !== 'Point') continue;
         const [x, y] = px(...f.geometry.coordinates);
         const t = normaliseType(f.properties?.type) || 'village';
+        if (off(legendKey(t))) continue;
         sym.push(settlementSymbol(state.style, t, x, y, f.properties?.name || ''));
         const big = t === 'town' || t === 'city';
         placed.push([x - (big ? 22 : 14), y - (big ? 26 : 14), x + (big ? 22 : 14), y + (big ? 20 : 14)]);
@@ -146,7 +152,7 @@ export function createMap(container, opts) {
       }
     }
     // Pins occupy space too.
-    if (state.layers.pins) for (const s of state.stories) { const [x, y] = px(s.lng, s.lat); placed.push([x - 8, y - 8, x + 8 + 8 * String(s.place || '').length, y + 8]); }
+    if (state.layers.pins && !off('pins')) for (const s of state.stories) { const [x, y] = px(s.lng, s.lat); placed.push([x - 8, y - 8, x + 8 + 8 * String(s.place || '').length, y + 8]); }
     parts.push(`<g class="gmap__symbols">${sym.join('')}</g>`);
     parts.push(`<g class="gmap__labels">${placeLabels(labels, placed, state.style)}</g>`);
     svg.innerHTML = parts.join('');
@@ -202,7 +208,7 @@ export function createMap(container, opts) {
   // ---------- pins (HTML buttons over the SVG) ----------
   function drawPins() {
     overlay.innerHTML = '';
-    if (!state.layers.pins) return;
+    if (!state.layers.pins || off('pins')) return;
     for (const s of state.stories) {
       const b = document.createElement('button');
       b.type = 'button';
@@ -289,6 +295,7 @@ export function createMap(container, opts) {
   return {
     setStyle(s) { if (!STYLES[s]) return; state.style = s; container.dataset.style = s; draw(); },
     setLayers(l) { Object.assign(state.layers, l); draw(); },
+    setHidden(keys) { state.hidden = new Set(keys); draw(); },
     setStories(list) { state.stories = list; draw(); },
     setDim(ids) { state.dim = new Set(ids); drawPins(); },
     setActive(id) { state.active = id; drawPins(); },
