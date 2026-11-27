@@ -1,7 +1,7 @@
 // Admin shell: auth guard, sidebar, toasts, storage uploads.
 import { supabase, getSettings } from '../db.js';
 import { applyTheme, esc } from '../ui.js';
-import { siteUrl } from '../config.js';
+import { siteUrl, SITE_VERSION, COPYRIGHT_HOLDER } from '../config.js';
 
 export const NAV = [
   ['basins', 'River basins', 'admin/index.html'],
@@ -38,7 +38,8 @@ export function layout(app, current, user, main) {
       ${NAV.map(([k, l, h]) => `<a href="${esc(siteUrl(h))}"${k === current ? ' aria-current="page"' : ''}>${esc(l)}</a>`).join('')}
       <a href="${esc(siteUrl('index.html'))}" target="_blank" rel="noopener">↗ View site</a>
       <div class="me"><span class="label">LOGGED IN AS</span><span style="overflow-wrap:anywhere">${esc(user.email)}</span>
-        <button type="button" class="btn btn--small" data-logout>Log out</button></div>
+        <button type="button" class="btn btn--small" data-logout>Log out</button>
+        <span class="muted" style="font-size:11px;padding-top:6px">© ${new Date().getFullYear()} ${esc(COPYRIGHT_HOLDER)} · v${esc(SITE_VERSION)}</span></div>
     </nav>
     <main class="admin__main" id="main">${main}</main></div>`;
   app.querySelector('[data-logout]').addEventListener('click', async () => { const sb = await supabase(); await sb.auth.signOut(); location.replace(siteUrl('admin/login.html?out=1')); });

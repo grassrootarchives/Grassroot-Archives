@@ -260,3 +260,7 @@ table.index td.num { text-align: right; }
 .resil__when { color: var(--muted); font-size: 12px; }
 .resil__when::before { content: "· "; }
 .drawer .resil .prose { font-size: 17px; }
+
+/* footer: copyright, contact, version */
+.site-footer__legal { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px 24px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.site-footer__legal a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }

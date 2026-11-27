@@ -9,7 +9,7 @@ const main = layout(app, 'settings', user, `
   <div class="cols">
     <section class="panel" aria-labelledby="h-site"><h2 id="h-site">Site</h2>
       <label class="field"><span>Site name</span><input data-name value="${esc(settings?.site_name || '')}"></label>
-      <label class="field"><span>Public contact email</span><input type="email" data-email value="${esc(settings?.contact_email || '')}"><span class="hint">Shown as a Contact link in the footer. Leave empty to hide it.</span></label>
+      <label class="field"><span>Public contact email</span><input type="email" data-email value="${esc(settings?.contact_email || '')}"><span class="hint">Shown in the footer of every page. If left empty, grassrootarchives@gmail.com is shown.</span></label>
       <div><button type="button" class="btn btn--primary" data-savesite>Save</button></div>
       <p class="muted" style="margin:0">Colours and fonts are set in Pages &amp; design.</p>
     </section>

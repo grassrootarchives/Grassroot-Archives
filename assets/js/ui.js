@@ -1,5 +1,5 @@
 // Shared UI: escaping, a small Markdown subset, theme, header and footer.
-import { siteUrl } from './config.js';
+import { siteUrl, SITE_VERSION, SITE_RELEASED, COPYRIGHT_HOLDER, CONTACT_EMAIL } from './config.js';
 
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -79,14 +79,19 @@ export function header({ pages, valleys, current, over = false, valley = null, s
 
 export function footer(settings, pages) {
   const custom = (pages || []).filter(p => p.kind === 'custom' && p.status === 'published' && !p.show_in_menu);
+  const email = settings?.contact_email || CONTACT_EMAIL;
   return `<footer class="site-footer">
     <span style="font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink)">${esc(settings?.site_name || 'Grassroot Archives')}</span>
     <nav aria-label="Footer">
       <a href="${esc(siteUrl('about.html'))}">About</a>
       ${custom.map(p => `<a href="${esc(siteUrl('page.html?p=' + encodeURIComponent(p.slug)))}">${esc(p.title)}</a>`).join('')}
-      ${settings?.contact_email ? `<a href="mailto:${esc(settings.contact_email)}">Contact</a>` : ''}
       <a href="${esc(siteUrl('admin/login.html'))}">Admin</a>
     </nav>
+    <div class="site-footer__legal">
+      <span>© ${new Date().getFullYear()} ${esc(COPYRIGHT_HOLDER)}. All rights reserved.</span>
+      <span>Contact: <a href="mailto:${esc(email)}">${esc(email)}</a></span>
+      <span>Version ${esc(SITE_VERSION)} · ${esc(SITE_RELEASED)}</span>
+    </div>
   </footer>`;
 }
 
