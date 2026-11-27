@@ -3,6 +3,10 @@
 import { isolines, simplify, thresholds, gridRange } from '../geo/contour.js';
 import { sampleElevation, snapToLine } from '../geo/geom.js';
 import { STYLES, settlementSymbol, infraSymbol, normaliseType } from './symbols.js';
+
+// Map symbols (settlements, water infrastructure) are drawn at this share of their full size; legends stay full size.
+export const ICON_SCALE = 0.7;
+const shrink = (svg, x, y, k = ICON_SCALE) => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${k}) translate(${(-x).toFixed(1)} ${(-y).toFixed(1)})">${svg}</g>`;
 import { legendKey } from './legend.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -133,10 +137,10 @@ export function createMap(container, opts) {
         const t = normaliseType(f.properties?.type);
         if (off(legendKey(t))) continue;
         const ang = Math.atan2(...tangentAt(...f.geometry.coordinates).reverse()) * 180 / Math.PI + 90;
-        sym.push(infraSymbol(state.style, t, x, y, ang));
-        placed.push([x - 9, y - 9, x + 9, y + 9]);
+        sym.push(shrink(infraSymbol(state.style, t, x, y, ang), x, y));
+        placed.push([x - 7, y - 7, x + 7, y + 7]);
         const name = f.properties?.name || (['dam', 'weir', 'kt_weir', 'jack_well', 'pump_house'].includes(t) ? STYLES[state.style].typeLabel(t) : '');
-        if (name) labels.push({ x, y, text: name, r: 12 });
+        if (name) labels.push({ x, y, text: name, r: 9 });
       }
     }
     if (state.layers.settlements) {
@@ -145,10 +149,10 @@ export function createMap(container, opts) {
         const [x, y] = px(...f.geometry.coordinates);
         const t = normaliseType(f.properties?.type) || 'village';
         if (off(legendKey(t))) continue;
-        sym.push(settlementSymbol(state.style, t, x, y, f.properties?.name || ''));
-        const big = t === 'town' || t === 'city';
-        placed.push([x - (big ? 22 : 14), y - (big ? 26 : 14), x + (big ? 22 : 14), y + (big ? 20 : 14)]);
-        if (f.properties?.name) labels.push({ x, y, text: f.properties.name, r: big ? 24 : 16 });
+        sym.push(shrink(settlementSymbol(state.style, t, x, y, f.properties?.name || ''), x, y));
+        const big = t === 'town' || t === 'city', k = ICON_SCALE;
+        placed.push([x - (big ? 22 : 14) * k, y - (big ? 26 : 14) * k, x + (big ? 22 : 14) * k, y + (big ? 20 : 14) * k]);
+        if (f.properties?.name) labels.push({ x, y, text: f.properties.name, r: (big ? 24 : 16) * k });
       }
     }
     // Pins occupy space too.
