@@ -69,7 +69,7 @@ export function header({ pages, valleys, current, over = false, valley = null, s
   return `<a class="skip" href="#main">Skip to content</a>
   <header class="site-header${over ? ' site-header--over' : ''}">
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <a class="wordmark" href="${esc(siteUrl('index.html'))}">${esc(settings?.site_name || 'Grassroot Archives')}</a>${switcher}
+      <a class="wordmark" href="${esc(siteUrl('index.html'))}" title="Go to the home page">${esc(settings?.site_name || 'Grassroot Archives')}</a>${switcher}
     </div>
     <button class="nav-toggle" type="button" aria-label="Menu" aria-expanded="false" data-nav-toggle>
       <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20" stroke="currentColor" stroke-width="1.5"/></svg></button>
@@ -81,7 +81,7 @@ export function footer(settings, pages) {
   const custom = (pages || []).filter(p => p.kind === 'custom' && p.status === 'published' && !p.show_in_menu);
   const email = settings?.contact_email || CONTACT_EMAIL;
   return `<footer class="site-footer">
-    <span style="font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink)">${esc(settings?.site_name || 'Grassroot Archives')}</span>
+    <a class="wordmark" href="${esc(siteUrl('index.html'))}" title="Go to the home page">${esc(settings?.site_name || 'Grassroot Archives')}</a>
     <nav aria-label="Footer">
       <a href="${esc(siteUrl('about.html'))}">About</a>
       ${custom.map(p => `<a href="${esc(siteUrl('page.html?p=' + encodeURIComponent(p.slug)))}">${esc(p.title)}</a>`).join('')}

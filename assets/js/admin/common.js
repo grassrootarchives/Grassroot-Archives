@@ -34,7 +34,7 @@ export async function requireAdmin(current) {
 export function layout(app, current, user, main) {
   app.innerHTML = `<a class="skip" href="#main">Skip to content</a><div class="admin">
     <nav class="admin__nav" aria-label="Admin">
-      <span class="brand">Grassroot Archives</span><span class="sub">ADMIN · CMS</span>
+      <a class="brand" href="${esc(siteUrl('index.html'))}" title="Go to the public home page">Grassroot Archives</a><span class="sub">ADMIN · CMS</span>
       ${NAV.map(([k, l, h]) => `<a href="${esc(siteUrl(h))}"${k === current ? ' aria-current="page"' : ''}>${esc(l)}</a>`).join('')}
       <a href="${esc(siteUrl('index.html'))}" target="_blank" rel="noopener">↗ View site</a>
       <div class="me"><span class="label">LOGGED IN AS</span><span style="overflow-wrap:anywhere">${esc(user.email)}</span>

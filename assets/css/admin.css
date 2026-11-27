@@ -136,3 +136,6 @@
 .lvlpick span::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
 .lvlpick input:checked + span { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); font-weight: 600; }
 .lvlpick input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.admin-nav .brand, a.brand { color: inherit; text-decoration: none; }
+a.brand:hover, a.brand:focus-visible { text-decoration: underline; text-underline-offset: 4px; }

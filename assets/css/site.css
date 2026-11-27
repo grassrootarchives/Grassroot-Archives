@@ -304,3 +304,7 @@ table.index td.num { text-align: right; }
 .valley-item__facts { display: flex; gap: 28px; margin: 4px 0 6px; }
 .valley-item__facts dt { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .valley-item__facts dd { margin: 2px 0 0; font-weight: 600; }
+
+/* the site name always links home; make that visible */
+.wordmark { color: inherit; cursor: pointer; text-underline-offset: 5px; text-decoration-thickness: 2px; }
+.wordmark:hover, .wordmark:focus-visible { text-decoration: underline; }
