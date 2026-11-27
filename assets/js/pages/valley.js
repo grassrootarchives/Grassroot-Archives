@@ -1,6 +1,6 @@
 // Valley map page: map, filters, telemetry, layers, legend, profile and the story drawer.
-import { boot, shell, setMeta } from './common.js';
-import { getValley, getStories, getPageBy, loadValleyData, dataUrl } from '../db.js';
+import { boot, shell, setMeta, drawThumbs } from './common.js';
+import { getValley, getStories, getPageBy, loadValleyData, dataUrl, storyCounts } from '../db.js';
 import { renderBlocks } from '../blocks.js';
 import { esc, md, errorBox } from '../ui.js';
 import { siteUrl } from '../config.js';
@@ -22,9 +22,10 @@ const fmtM = v => v == null ? '—' : Math.round(v) + 'm';
 try {
   const site = await boot();
   const published = site.valleys.filter(v => v.status === 'published');
-  const slug = new URLSearchParams(location.search).get('v') || published[0]?.slug;
+  const slug = new URLSearchParams(location.search).get('v');
   const valley = slug ? await getValley(slug) : null;
-  if (!valley) {
+  if (!slug) await renderValleyList(site, published);
+  else if (!valley) {
     shell(app, site, { current: 'valley_template', main: `<div class="wrap" style="padding:96px 32px"><h1 class="display" style="font-size:44px">No valley to show yet</h1><p class="muted">Valleys appear here once they are published from the admin.</p></div>` });
   } else {
     const [template, stories, data] = await Promise.all([getPageBy('kind', 'valley_template'), getStories(valley.id), loadValleyData(valley)]);
@@ -258,4 +259,34 @@ function resilienceHTML(r) {
       <div class="resil__head"><span class="sbadge" style="background:${L.color}">${x.n}</span><strong>${esc(L.name)}</strong>${x.when ? `<span class="resil__when">${esc(x.when)}</span>` : ''}</div>
       ${x.hazard && x.link ? `<div class="resil__link">Responds to: ${esc(linkLabel(x.hazard, x.link))}</div>` : ''}
       ${x.text ? `<div class="prose">${md(x.text)}</div>` : ''}</li>`; }).join('')}</ol></section>`;
+}
+
+// River valleys: the page reached from the menu and the home page, listing every published valley.
+async function renderValleyList(site, valleys) {
+  const counts = await storyCounts().catch(() => ({}));
+  const STYLE_NAME = { contour: 'Contour survey', watercolor: 'Watercolour', miniature: 'Miniature painting' };
+  setMeta(`River valleys · ${site.settings?.site_name || 'Grassroot Archives'}`, 'Every river valley in the archive: open its map, or browse its stories.');
+  shell(app, site, { current: 'valley_template', main: `
+    <div class="wrap valleys-page">
+      <div class="valleys-page__head">
+        <span class="eyebrow">River valleys</span>
+        <h1 class="display">Choose a river valley</h1>
+        <p class="lede">Each valley has its own map, built from its contour map, with its stories pinned along the river. ${valleys.length === 1 ? 'One valley is published so far; more join as their fieldwork begins.' : valleys.length ? `${valleys.length} valleys are published so far.` : ''}</p>
+      </div>
+      ${valleys.length ? `<div class="valley-list">${valleys.map(v => { const n = counts[v.id] || 0; const map = siteUrl('valley.html?v=' + encodeURIComponent(v.slug)); return `
+        <article class="valley-item">
+          <a class="valley-item__thumb" href="${esc(map)}" tabindex="-1" aria-hidden="true"><div class="thumb" data-thumb="${esc(v.slug)}"></div></a>
+          <div class="valley-item__body">
+            <h2 class="display"><a href="${esc(map)}">${esc(v.name)}</a></h2>
+            ${v.region ? `<span class="muted">${esc(v.region)}</span>` : ''}
+            ${v.intro ? `<p>${esc(v.intro.length > 220 ? v.intro.slice(0, 217).replace(/\s+\S*$/, '') + '…' : v.intro)}</p>` : ''}
+            <dl class="valley-item__facts"><div><dt>Stories</dt><dd>${n}</dd></div><div><dt>Map style</dt><dd>${esc(STYLE_NAME[v.map_style] || 'Contour survey')}</dd></div></dl>
+            <div class="row" style="gap:10px;flex-wrap:wrap">
+              <a class="btn btn--primary" href="${esc(map)}">Open the map →</a>
+              <a class="btn" href="${esc(siteUrl('river-index.html?v=' + encodeURIComponent(v.slug)))}">Its stories in The Archive</a>
+            </div>
+          </div>
+        </article>`; }).join('')}</div>` : '<div class="empty">No valleys are published yet. They appear here once they are published from the admin.</div>'}
+    </div>` });
+  drawThumbs(app, valleys);
 }

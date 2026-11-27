@@ -62,3 +62,10 @@ export async function loadValleyData(valley) {
   ]);
   return { grid, river, boundary, settlements, infra };
 }
+
+// Published stories per valley: { valley_id: count }
+export async function storyCounts() {
+  const sb = await supabase();
+  const rows = check(await sb.from('stories').select('valley_id').eq('status', 'published'));
+  return (rows || []).reduce((m, r) => (m[r.valley_id] = (m[r.valley_id] || 0) + 1, m), {});
+}
