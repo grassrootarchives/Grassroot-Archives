@@ -30,7 +30,7 @@ function icon(style, key, interval) {
     case 'village': g = `<g transform="scale(${style === 'miniature' ? 0.75 : 0.8})">${settlementSymbol(style, 'village', 0, style === 'miniature' ? -3 : 0, 'Village')}</g>`; break;
     case 'town': g = `<g transform="scale(${style === 'miniature' ? 0.42 : 0.75})">${settlementSymbol(style, 'town', 0, style === 'miniature' ? 0 : 0, 'Town')}</g>`; break;
     case 'pins': g = '<circle r="6" fill="#fff" stroke="#C0504A" stroke-width="2"/>'; break;
-    default: g = `<g transform="scale(${key === 'dam' && style !== 'contour' ? 0.55 : 0.8})">${infraSymbol(style, key, 0, 0, 0)}</g>`;
+    default: g = `<g transform="scale(${key === 'dam' && style !== 'contour' ? 0.55 : 0.8})">${infraSymbol(style, key, 0, 0, 0, 1)}</g>`;
   }
   return `<svg class="lg__icon" viewBox="-20 -13 40 26" width="40" height="26" aria-hidden="true" overflow="visible">${g}</svg>`;
 }

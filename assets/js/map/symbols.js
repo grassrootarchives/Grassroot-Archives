@@ -107,9 +107,12 @@ export function settlementSymbol(style, type, x, y, name) {
 }
 
 // ---------- water infrastructure ----------
-export function infraSymbol(style, type, x, y, angle = 0) {
-  const at = inner => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">${inner}</g>`;
-  const rot = inner => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${angle.toFixed(0)})">${inner}</g>`;
+// Dams and weirs are drawn smaller on the map so they don't crowd the river; legends pass k = 1.
+export const INFRA_SCALE = { dam: 0.6, weir: 0.65, kt_weir: 0.65, check_dam: 0.75 };
+export function infraSymbol(style, type, x, y, angle = 0, k = INFRA_SCALE[type] || 1) {
+  const sc = k === 1 ? '' : ` scale(${k})`;
+  const at = inner => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})${sc}">${inner}</g>`;
+  const rot = inner => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${angle.toFixed(0)})${sc}">${inner}</g>`;
   if (style === 'contour') {
     switch (type) {
       case 'dam': return rot(`<path d="M-16 0 h32" stroke="${INK}" stroke-width="7"/>`);

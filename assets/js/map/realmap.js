@@ -61,6 +61,7 @@ export async function createRealMap(container, opts) {
   const { grid, river, boundary } = opts;
   const settlements = tag(opts.settlements), infra = tag(opts.infra);
   const contours = contourGeoJSON(grid, opts.interval || 20);
+  let z0 = null;
   const state = { base: 'satellite', relief: true, terrain3d: false, hidden: new Set(), dim: new Set(), active: null };
   const [W, S, E, N] = grid.bounds;
 
@@ -78,6 +79,10 @@ export async function createRealMap(container, opts) {
   function addOurs() {
     if (!map.getSource('ga-sat')) map.addSource('ga-sat', { type: 'raster', ...SAT });
     if (!map.getSource('ga-dem')) map.addSource('ga-dem', { type: 'raster-dem', ...DEM });
+    // Symbols scale with the map: full size at the valley's opening zoom, doubling per zoom level in, halving per level out (within limits).
+    if (z0 == null) z0 = map.getZoom();
+    const grow = (k = 1) => ['interpolate', ['exponential', 2], ['zoom'], z0 - 3, 0.2 * k, z0, k, z0 + 2.5, 5.6 * k];
+    const below = em => ['interpolate', ['exponential', 2], ['zoom'], z0 - 3, ['literal', [0, 0.5]], z0, ['literal', [0, em]], z0 + 2.5, ['literal', [0, em * 5.2]]];  // keeps names just under their growing icons
     const firstSymbol = map.getStyle().layers.find(l => l.type === 'symbol')?.id;
     baseLayerIds = map.getStyle().layers.filter(l => !l.id.startsWith('ga-')).map(l => ({ id: l.id, type: l.type }));
     map.addLayer({ id: 'ga-sat', type: 'raster', source: 'ga-sat', paint: { 'raster-saturation': -0.1 } }, firstSymbol);
@@ -96,8 +101,8 @@ export async function createRealMap(container, opts) {
     map.addLayer({ id: 'ga-pipeline', type: 'line', source: 'ga-infra', filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'lk'], 'pipeline']], paint: { 'line-color': '#C0504A', 'line-width': 1.4, 'line-dasharray': [3, 2] } });
     map.addLayer({ id: 'ga-river-casing', type: 'line', source: 'ga-river', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#FFFFFF', 'line-width': 6, 'line-opacity': 0.8 } });
     map.addLayer({ id: 'ga-river', type: 'line', source: 'ga-river', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#3F7FB5', 'line-width': 3 } });
-    map.addLayer({ id: 'ga-infra-pts', type: 'symbol', source: 'ga-infra', filter: ['==', ['geometry-type'], 'Point'], layout: { 'icon-image': ['concat', 'inf-', ['get', 'lk']], 'icon-allow-overlap': true, 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-offset': [0, 1.3], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#1E2A33', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.5 } });
-    map.addLayer({ id: 'ga-set', type: 'symbol', source: 'ga-set', filter: ['==', ['geometry-type'], 'Point'], layout: { 'icon-image': ['concat', 'set-', ['get', 'lk']], 'icon-allow-overlap': true, 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#1E2A33', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.6 } });
+    map.addLayer({ id: 'ga-infra-pts', type: 'symbol', source: 'ga-infra', filter: ['==', ['geometry-type'], 'Point'], layout: { 'icon-image': ['concat', 'inf-', ['get', 'lk']], 'icon-size': grow(), 'icon-allow-overlap': true, 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-offset': below(1.3), 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#1E2A33', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.5 } });
+    map.addLayer({ id: 'ga-set', type: 'symbol', source: 'ga-set', filter: ['==', ['geometry-type'], 'Point'], layout: { 'icon-image': ['concat', 'set-', ['get', 'lk']], 'icon-size': grow(), 'icon-allow-overlap': true, 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-offset': below(1.2), 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#1E2A33', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.6 } });
     addIcons(map);
     applyBase(); applyHidden();
   }
