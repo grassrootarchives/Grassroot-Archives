@@ -314,3 +314,55 @@ table.index td.num { text-align: right; }
 .table-wrap { max-width: 100%; position: relative; -webkit-overflow-scrolling: touch; }
 .blocks > .wrap { width: 100%; box-sizing: border-box; }
 .valley-card { max-width: 460px; }
+
+/* ---------- transect parameter popups ---------- */
+.tag--param { display: inline-flex; align-items: center; gap: 10px; min-height: 40px; font: inherit; color: var(--ink); cursor: pointer; border-color: var(--line-2); }
+.tag--param:hover { border-color: var(--ink); }
+.tag__more { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 1px solid currentColor; border-radius: 50%; font-size: 12px; line-height: 1; }
+.card__more { text-align: left; margin-top: auto; align-self: flex-start; display: inline-flex; gap: 6px; align-items: center; min-height: 40px; padding: 0; border: 0; border-bottom: 1px solid currentColor; background: none; font: inherit; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; cursor: pointer; color: var(--ink); }
+.card__more:hover { color: var(--clay); }
+.pmodal { width: min(980px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 1px solid var(--ink); background: var(--ground); color: var(--ink); }
+.pmodal::backdrop { background: rgba(20, 28, 34, .55); }
+.pmodal__inner { display: flex; flex-direction: column; }
+.pmodal__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 22px 26px 16px; border-bottom: 1px solid var(--line); }
+.pmodal__head h2 { font-size: 36px; margin-top: 6px; }
+.pmodal__x { width: 44px; height: 44px; flex: none; border: 1px solid var(--line-2); background: transparent; font-size: 24px; line-height: 1; cursor: pointer; }
+.pmodal__x:hover { border-color: var(--ink); }
+.pmodal__body { display: flex; flex-wrap: wrap; gap: 24px; padding: 22px 26px; }
+.pmodal__text { flex: 1 1 280px; display: flex; flex-direction: column; gap: 6px; }
+.pmodal__text p { margin: 0 0 14px; font-family: var(--font-display); font-size: 18px; line-height: 1.55; }
+.pfig { flex: 1.6 1 420px; margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pfig__frame { border: 1px solid var(--line-2); background-color: var(--surface);
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 20px 20px; background-position: -1px -1px; padding: 8px; }
+.pfig__svg { display: block; width: 100%; height: auto; font-family: var(--font-ui); }
+.pfig figcaption { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pfig figcaption span { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.pmodal__foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 14px 26px 20px; border-top: 1px solid var(--line); }
+.pfig__svg .tx { font-size: 9.5px; letter-spacing: .06em; fill: var(--muted); }
+.pfig__svg .tb { font-size: 11px; font-weight: 600; fill: var(--ink); }
+.pfig__svg .ln { stroke: var(--ink); stroke-width: 1.2; fill: none; }
+.pfig__svg .thin { stroke-width: .7; }
+.pfig__svg .dash { stroke-dasharray: 5 4; }
+.pfig__svg .dot2 { stroke-dasharray: 1.5 3; stroke-linecap: round; }
+.pfig__svg .hatch { stroke: var(--line-2); stroke-width: 1.2; }
+.pfig__svg .gd { stroke: none; }
+.pfig__svg .w1 { fill: var(--blue); opacity: .75; }
+.pfig__svg .w2 { fill: var(--river); }
+.pfig__svg .w1s { stroke: var(--river); stroke-width: 6; opacity: .5; }
+.pfig__svg .lw { stroke: var(--river); stroke-width: 2.4; fill: none; }
+.pfig__svg .lr { stroke: var(--river); stroke-width: 5; opacity: .7; }
+.pfig__svg .rv { stroke: var(--blue); stroke-width: 22; }
+.pfig__svg .lq { stroke: var(--river); stroke-width: 2; }
+.pfig__svg .la { stroke: var(--clay); stroke-width: 1.8; fill: none; }
+.pfig__svg .lg { stroke: var(--green-ink); stroke-width: 1.6; }
+.pfig__svg .mk { fill: var(--ink); } .pfig__svg .mk-w { fill: var(--river); } .pfig__svg .mk-a { fill: var(--clay); }
+.pfig__svg .dot { fill: var(--muted); }
+.pfig__svg .fill-s { fill: var(--surface); } .pfig__svg .fill-p { fill: var(--panel); } .pfig__svg .fill-w { fill: var(--blue); }
+.pfig__svg .fill-a { fill: var(--red); } .pfig__svg .fill-a2 { fill: var(--clay); opacity: .7; }
+.pfig__svg .rd1 { stroke: var(--ink); stroke-width: 6; } .pfig__svg .rd1i { stroke: var(--surface); stroke-width: 3; }
+.pfig__svg .rd2 { stroke: var(--ink); stroke-width: 3; } .pfig__svg .rd3 { stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 6 3; }
+.pfig__svg .hz { fill: var(--red); stroke: var(--clay); stroke-width: 1.4; }
+.pfig__svg .lu1 { fill: var(--sage); } .pfig__svg .lu2 { fill: var(--green-2); stroke: var(--sage); } .pfig__svg .lu3 { fill: var(--red-2); stroke: var(--clay); stroke-width: .6; }
+.pfig__svg .b-tap { fill: var(--river); } .pfig__svg .b-bw { fill: var(--sage); } .pfig__svg .b-tk { fill: var(--clay); opacity: .8; } .pfig__svg .b-wk { fill: var(--red); }
+@media (max-width: 640px) { .pmodal__head h2 { font-size: 28px; } .pmodal__body, .pmodal__head, .pmodal__foot { padding-left: 16px; padding-right: 16px; } }

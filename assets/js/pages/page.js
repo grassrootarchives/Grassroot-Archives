@@ -2,6 +2,7 @@
 import { boot, shell, drawThumbs, setMeta } from './common.js';
 import { getPageBy } from '../db.js';
 import { renderBlocks } from '../blocks.js';
+import { wireParams } from '../params.js';
 import { header, wireHeader, errorBox, esc } from '../ui.js';
 
 const app = document.getElementById('app');
@@ -19,6 +20,7 @@ try {
     const headerHtml = heroFirst ? header({ pages: site.pages, valleys: site.valleys, current, settings: site.settings, over: true }) : '';
     shell(app, site, { current, over: heroFirst, main: `<div class="blocks">${renderBlocks(blocks, { valleys: site.valleys, headerHtml })}</div>` });
     drawThumbs(app, site.valleys);
+    wireParams(app);
     setMeta(page.kind === 'home' ? site.settings.site_name : `${page.title} · ${site.settings.site_name}`);
   }
 } catch (err) { app.innerHTML = errorBox(err); }
