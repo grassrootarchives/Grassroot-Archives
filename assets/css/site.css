@@ -264,3 +264,25 @@ table.index td.num { text-align: right; }
 /* footer: copyright, contact, version */
 .site-footer__legal { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px 24px; padding-top: 14px; border-top: 1px dashed var(--line); }
 .site-footer__legal a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---------- hazard chain wheel and numbered strategies ---------- */
+.cw { width: 100%; height: auto; display: block; overflow: visible; font-family: var(--font-mono, 'IBM Plex Mono', monospace); }
+.cw__seg path { stroke: #fff; stroke-width: 1.5; transition: filter .15s; }
+.cw__seg[data-link] { cursor: pointer; outline: none; }
+.cw__seg[data-link]:hover path, .cw__seg[data-link]:focus-visible path { filter: brightness(.93); }
+.cw__seg[data-link]:focus-visible path { stroke: #1E2A33; stroke-width: 2.5; stroke-dasharray: 4 3; }
+.cw__seg.is-sel path { stroke: #1E2A33; stroke-width: 3; }
+.cw__num { font-size: 16px; font-weight: 600; pointer-events: none; }
+.cw__badge text { fill: #fff; font-size: 11px; font-weight: 600; pointer-events: none; }
+.cw__hz { font-family: var(--font-display, 'Newsreader', Georgia, serif); font-size: 22px; fill: #1E2A33; }
+.cw__sub { font-size: 10px; letter-spacing: .08em; fill: #4C5B64; text-transform: uppercase; }
+.sbadge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; color: #fff; font-size: 11px; font-weight: 600; flex: none; }
+.levelkey { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted, #4C5B64); }
+.levelkey span { display: inline-flex; align-items: center; gap: 6px; }
+.levelkey i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.resil__wheels { display: flex; flex-wrap: wrap; gap: 12px; }
+.resil__wheel { margin: 0; flex: 1 1 200px; max-width: 280px; display: flex; flex-direction: column; gap: 4px; }
+.resil__wheel figcaption { font-size: 11px; color: var(--muted, #4C5B64); text-align: center; }
+.resil__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.resil__item { border-left: 4px solid var(--lvl); padding: 2px 0 2px 12px; display: flex; flex-direction: column; gap: 6px; }
+.resil__link { font-size: 12px; color: var(--muted, #4C5B64); }

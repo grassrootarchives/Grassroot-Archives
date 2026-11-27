@@ -7,7 +7,9 @@ import { siteUrl } from '../config.js';
 import { createMap } from '../map/map.js';
 import { STYLES } from '../map/symbols.js';
 import { mountLegend } from '../map/legend.js';
-import { LEVELS, hasResilience } from '../resilience.js';
+import { levelOf, strategiesOf, hasResilience } from '../resilience.js';
+import { HAZARDS, linkLabel } from '../hazards.js';
+import { chainWheel, levelKey } from '../chainwheel.js';
 import { createRealMap } from '../map/realmap.js';
 import { formatDMS, zoneFor } from '../geo/geom.js';
 
@@ -219,10 +221,7 @@ function render(site, valley, template, stories, data) {
         ${s.interviewee ? `<div class="attrib">— ${esc(s.interviewee)}${s.age ? ', ' + esc(s.age) : ''}${s.role ? ' | ' + esc(s.role) : ''}</div>` : ''}
         ${media(s)}
         ${s.transcript ? `<div><span class="label" style="display:block;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:12px">Narrative &amp; transcript</span><div class="prose">${md(s.transcript)}</div></div>` : ''}
-        ${hasResilience(s.resilience) ? `<section class="resil" aria-label="Resilience strategies"><span class="label" style="display:block;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px">Resilience strategies</span>
-          ${LEVELS.filter(l => s.resilience[l.key]?.text?.trim() || s.resilience[l.key]?.when?.trim()).map(l => { const r = s.resilience[l.key]; return `<div class="resil__level">
-            <div class="resil__head"><span class="resil__n">${l.n}</span><strong>${esc(l.name)}</strong>${r.when ? `<span class="resil__when">${esc(r.when)}</span>` : ''}</div>
-            ${r.text ? `<div class="prose">${md(r.text)}</div>` : ''}</div>`; }).join('')}</section>` : ''}
+        ${hasResilience(s.resilience) ? resilienceHTML(s.resilience) : ''}
       </div>
     </article>`;
     drawerRoot.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeStory));
@@ -246,4 +245,17 @@ function render(site, valley, template, stories, data) {
   });
   const m = location.hash.match(/^#story-(.+)$/);
   if (m) openStory(decodeURIComponent(m[1]));
+}
+
+// Resilience strategies in the story drawer: a chain wheel per hazard that strategies respond to, then the numbered list.
+function resilienceHTML(r) {
+  const st = strategiesOf(r).filter(x => x.text?.trim() || x.when?.trim()).map((x, i) => ({ ...x, n: i + 1 }));
+  const hz = Object.keys(HAZARDS).filter(k => st.some(x => x.hazard === k));
+  return `<section class="resil" aria-label="Resilience strategies"><span class="label" style="display:block;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px">Resilience strategies</span>
+    ${hz.length ? `<div class="resil__wheels">${hz.map(k => `<figure class="resil__wheel">${chainWheel(k, st)}<figcaption>${esc(HAZARDS[k].name)}: which step of the chain each strategy responds to</figcaption></figure>`).join('')}</div>` : ''}
+    ${levelKey()}
+    <ol class="resil__list">${st.map(x => { const L = levelOf(x.level); return `<li class="resil__item" style="--lvl:${L.color}">
+      <div class="resil__head"><span class="sbadge" style="background:${L.color}">${x.n}</span><strong>${esc(L.name)}</strong>${x.when ? `<span class="resil__when">${esc(x.when)}</span>` : ''}</div>
+      ${x.hazard && x.link ? `<div class="resil__link">Responds to: ${esc(linkLabel(x.hazard, x.link))}</div>` : ''}
+      ${x.text ? `<div class="prose">${md(x.text)}</div>` : ''}</li>`; }).join('')}</ol></section>`;
 }

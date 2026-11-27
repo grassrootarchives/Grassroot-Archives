@@ -1,7 +1,8 @@
 import { requireAdmin, layout, toast, param } from './common.js';
 import { esc } from '../ui.js';
 import { siteUrl } from '../config.js';
-import { LEVELS } from '../resilience.js';
+import { levelOf, strategiesOf } from '../resilience.js';
+import { linkLabel } from '../hazards.js';
 
 const app = document.getElementById('app');
 const { sb, user } = await requireAdmin('stories');
@@ -54,7 +55,9 @@ main.querySelector('[data-csv]').addEventListener('click', async e => {
       ['Interviewee', s => s.interviewee], ['Age', s => s.age], ['Role', s => s.role], ['Theme', s => s.theme],
       ['Latitude', s => s.lat], ['Longitude', s => s.lng], ['Elevation (m)', s => s.elevation], ['River km', s => s.river_km],
       ['Zone', s => s.zone], ['Sub-basin', s => s.sub_basin], ['Pull-quote', s => s.quote], ['Narrative & transcript', s => s.transcript],
-      ...LEVELS.flatMap(l => [[`${l.name}: when`, s => s.resilience?.[l.key]?.when], [`${l.name}: strategies`, s => s.resilience?.[l.key]?.text]]),
+      ['Resilience strategies', s => strategiesOf(s.resilience).map((x, i) => `${i + 1}. [${levelOf(x.level).name}]${x.hazard && x.link ? ' (responds to ' + linkLabel(x.hazard, x.link) + ')' : ''}${x.when ? ' ' + x.when + ':' : ''} ${x.text || ''}`.trim()).join('\n\n')],
+      ['Strategy count', s => strategiesOf(s.resilience).length],
+      ['Hazard chain steps', s => [...new Set(strategiesOf(s.resilience).filter(x => x.hazard && x.link).map(x => linkLabel(x.hazard, x.link)))].join(' | ')],
       ['Media types', s => [...new Set((s.media || []).map(m => m.type))].join(', ')],
       ['Media files', s => (s.media || []).map(m => m.url).join(' | ')],
       ['Status', s => s.status], ['Consent recorded', s => (s.consent ? 'Yes' : 'No')],

@@ -1,6 +1,8 @@
 // Add or edit a story: place it by latitude/longitude (or a click), attach media, publish.
 import { requireAdmin, layout, toast, errMsg, upload, safeName, param } from './common.js';
-import { LEVELS } from '../resilience.js';
+import { LEVELS, levelOf, strategiesOf } from '../resilience.js';
+import { HAZARDS, findLink, linkLabel } from '../hazards.js';
+import { chainWheel, levelKey } from '../chainwheel.js';
 import { loadValleyData, dataUrl } from '../db.js';
 import { esc } from '../ui.js';
 import { siteUrl } from '../config.js';
@@ -53,14 +55,14 @@ const main = layout(app, 'stories', user, `
       <div class="row"><label class="field"><span>Theme</span><select data-theme>${THEMES.map(t => `<option ${t === s.theme ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         <label class="field" style="flex:0 1 120px"><span>Number</span><input data-num type="number" min="1" value="${s.number ?? ''}" placeholder="auto"></label></div>
       <h2 style="margin-top:8px" id="h-res">04 · Resilience strategies</h2>
-      <p class="muted" style="margin:0">How people cope and adapt, at three levels: from the home outwards. The place is already set by the latitude and longitude; add when each strategy was used. Leave a level empty if the story doesn't speak to it.</p>
-      <div class="levels" role="group" aria-labelledby="h-res">${LEVELS.map(l => { const r = (s.resilience || {})[l.key] || {}; return `
-        <fieldset class="level" data-level="${l.key}">
-          <legend><span class="level__n">${l.n}</span> ${esc(l.name)}</legend>
-          <span class="hint">${esc(l.hint)}</span>
-          <label class="field"><span>When</span><input data-when value="${esc(r.when || '')}" placeholder="e.g. Since the 2015 drought · Every summer · 1972–1975"></label>
-          <label class="field"><span>Strategies</span><textarea data-text rows="5" placeholder="Describe the strategies. Start a line with - for a bullet point:&#10;- Storing water in drums&#10;- Shifting to millets">${esc(r.text || '')}</textarea><span class="hint">Start a line with <code>-</code> for a bullet point. Blank lines start new paragraphs.</span></label>
-        </fieldset>`; }).join('')}</div>
+      <p class="muted" style="margin:0">Each strategy is numbered and coloured by level: home, neighbourhood or wider region. Link it to the step of the hazard chain it responds to: choose the hazard, click a step on the wheel, then add a strategy for it (or pick the step in a strategy's <em>Responds to</em> list).</p>
+      <div class="chain" data-chain>
+        <div class="chain__tabs" role="tablist" aria-label="Hazard">${Object.entries(HAZARDS).map(([k, h]) => `<button type="button" role="tab" data-hz="${k}">${esc(h.name)}</button>`).join('')}</div>
+        <div class="chain__body"><div class="chain__wheel" data-wheel></div><div class="chain__side" data-side></div></div>
+        ${levelKey()}
+      </div>
+      <div class="strats" data-strats></div>
+      <button type="button" class="btn" data-add-strat>+ Add a strategy</button>
       <label class="check"><input type="checkbox" data-consent ${s.consent ? 'checked' : ''}> Consent to publish is recorded for this interview</label>
       <div class="row" style="padding-top:8px;border-top:1px solid var(--line)">
         <button type="button" class="btn" data-save="draft">Save draft</button>
@@ -70,6 +72,71 @@ const main = layout(app, 'stories', user, `
     </section>
   </div>`);
 const $ = q => main.querySelector(q);
+
+// ---------- 04 · resilience strategies and the hazard chain ----------
+let strats = strategiesOf(s.resilience).map(x => ({ level: x.level || 'home', when: x.when || '', text: x.text || '', hazard: x.hazard || null, link: x.link || null }));
+let hz = strats.find(x => x.hazard)?.hazard || Object.keys(HAZARDS)[0], sel = null;
+const numbered = () => strats.map((x, i) => ({ ...x, n: i + 1 }));
+const firstLine = t => (t || '').split('\n').map(x => x.replace(/^\s*[-*•]\s+/, '').trim()).find(Boolean) || '';
+const linkOptions = cur => `<option value="">Not linked to a step yet</option>${Object.entries(HAZARDS).map(([k, h]) => `<optgroup label="${esc(h.name)}">${h.links.map((l, i) => `<option value="${k}:${l.key}" ${cur === k + ':' + l.key ? 'selected' : ''}>${i + 1} · ${esc(l.short)}</option>`).join('')}</optgroup>`).join('')}`;
+function renderChain() {
+  main.querySelectorAll('[data-hz]').forEach(b => b.setAttribute('aria-selected', b.dataset.hz === hz));
+  $('[data-wheel]').innerHTML = chainWheel(hz, numbered(), { selected: sel, interactive: true });
+  const h = HAZARDS[hz], badge = x => `<span class="sbadge" style="background:${levelOf(x.level).color}">${x.n}</span>`;
+  if (sel) {
+    const l = findLink(hz, sel), mine = numbered().filter(x => x.hazard === hz && x.link === sel);
+    $('[data-side]').innerHTML = `<span class="label">${esc(h.name)} · step ${l.n} of ${h.links.length}</span>
+      <h3 class="chain__title">${esc(l.short)}</h3><p class="muted" style="margin:0">${esc(l.text)}</p>
+      <div class="chain__linked">${mine.length ? mine.map(x => `<button type="button" class="chain__strat" data-goto="${x.n - 1}">${badge(x)}<span>${esc(firstLine(x.text) || '(no text yet)')}</span></button>`).join('') : '<p class="muted" style="margin:0">No strategies linked to this step yet.</p>'}</div>
+      <div class="row" style="gap:8px"><button type="button" class="btn btn--primary btn--small" data-add-here>+ Add a strategy for this step</button><button type="button" class="btn btn--quiet btn--small" data-unsel>All steps</button></div>`;
+  } else {
+    $('[data-side]').innerHTML = `<span class="label">${esc(h.name)}</span><p class="muted" style="margin:0 0 6px">${esc(h.note)} Click a step to see or add its strategies.</p>
+      <ol class="chain__steps">${h.links.map(l => { const c = strats.filter(x => x.hazard === hz && x.link === l.key).length; return `<li><button type="button" data-pick="${l.key}"><span>${esc(l.short)}</span><span class="muted">${c ? c + (c === 1 ? ' strategy' : ' strategies') : '—'}</span></button></li>`; }).join('')}</ol>`;
+  }
+}
+function renderStrats() {
+  $('[data-strats]').innerHTML = strats.length ? strats.map((x, i) => { const L = levelOf(x.level); return `
+    <fieldset class="strat" data-si="${i}" style="--lvl:${L.color}">
+      <legend><span class="sbadge" style="background:${L.color}">${i + 1}</span> Strategy ${i + 1}</legend>
+      <div class="lvlpick" role="radiogroup" aria-label="Level of strategy ${i + 1}">${LEVELS.map(l => `<label style="--c:${l.color}"><input type="radio" name="lvl-${i}" value="${l.key}" ${l.key === x.level ? 'checked' : ''}><span>${esc(l.name)}</span></label>`).join('')}</div>
+      <div class="row"><label class="field"><span>Responds to</span><select data-f="link">${linkOptions(x.hazard && x.link ? x.hazard + ':' + x.link : '')}</select></label>
+        <label class="field"><span>When</span><input data-f="when" value="${esc(x.when)}" placeholder="e.g. Since the 2015 drought · Every summer"></label></div>
+      <label class="field"><span>Strategy</span><textarea data-f="text" rows="3" placeholder="What people did. Start a line with - for a bullet point.">${esc(x.text)}</textarea></label>
+      <div class="row" style="gap:6px"><button type="button" class="btn btn--quiet btn--small" data-mv="-1" ${i ? '' : 'disabled'} aria-label="Move strategy ${i + 1} up">↑ Up</button><button type="button" class="btn btn--quiet btn--small" data-mv="1" ${i < strats.length - 1 ? '' : 'disabled'} aria-label="Move strategy ${i + 1} down">↓ Down</button><button type="button" class="btn btn--danger btn--small" data-rm>Remove</button></div>
+    </fieldset>`; }).join('') : '<p class="muted" style="margin:0">No strategies yet. Add one below, or click a step on the wheel.</p>';
+}
+function addStrategy(preset = {}) {
+  strats.push({ level: 'home', when: '', text: '', hazard: null, link: null, ...preset });
+  renderStrats(); renderChain();
+  main.querySelector(`[data-si="${strats.length - 1}"] [data-f="text"]`)?.focus();
+}
+renderStrats(); renderChain();
+main.querySelector('[data-chain]').addEventListener('click', e => {
+  const t = e.target.closest('[data-hz],[data-link],[data-pick],[data-add-here],[data-unsel],[data-goto]'); if (!t) return;
+  if (t.dataset.hz) { hz = t.dataset.hz; sel = null; }
+  else if (t.dataset.link || t.dataset.pick) sel = t.dataset.link || t.dataset.pick;
+  else if (t.hasAttribute('data-add-here')) return addStrategy({ hazard: hz, link: sel });
+  else if (t.hasAttribute('data-unsel')) sel = null;
+  else if (t.dataset.goto) { const f = main.querySelector(`[data-si="${t.dataset.goto}"]`); f?.scrollIntoView({ behavior: 'smooth', block: 'center' }); f?.querySelector('textarea')?.focus(); return; }
+  renderChain();
+});
+main.querySelector('[data-wheel]').addEventListener('keydown', e => { const g = e.target.closest('[data-link]'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); sel = g.dataset.link; renderChain(); main.querySelector(`[data-link="${sel}"]`)?.focus(); } });
+$('[data-add-strat]').addEventListener('click', () => addStrategy());
+const stratBox = $('[data-strats]');
+stratBox.addEventListener('input', e => { const f = e.target.closest('[data-si]'); if (!f) return; const x = strats[f.dataset.si]; if (e.target.dataset.f === 'text' || e.target.dataset.f === 'when') { x[e.target.dataset.f] = e.target.value; if (e.target.dataset.f === 'text' && sel) renderChain(); } });
+stratBox.addEventListener('change', e => {
+  const f = e.target.closest('[data-si]'); if (!f) return; const x = strats[f.dataset.si];
+  if (e.target.type === 'radio') { x.level = e.target.value; const c = levelOf(x.level).color; f.style.setProperty('--lvl', c); f.querySelector('legend .sbadge').style.background = c; }
+  else if (e.target.dataset.f === 'link') { const [hk, lk] = e.target.value.split(':'); x.hazard = hk || null; x.link = lk || null; if (hk) { hz = hk; sel = lk; } }
+  renderChain();
+});
+stratBox.addEventListener('click', e => {
+  const f = e.target.closest('[data-si]'); if (!f) return; const i = Number(f.dataset.si);
+  if (e.target.closest('[data-rm]')) { if ((strats[i].text.trim() || strats[i].when.trim()) && !confirm(`Remove strategy ${i + 1}?`)) return; strats.splice(i, 1); }
+  else if (e.target.closest('[data-mv]')) { const j = i + Number(e.target.closest('[data-mv]').dataset.mv); [strats[i], strats[j]] = [strats[j], strats[i]]; }
+  else return;
+  renderStrats(); renderChain();
+});
 
 // ---------- map & derived values ----------
 let valley = null, data = null, map = null;
@@ -195,7 +262,7 @@ async function save(status) {
     role: $('[data-role]').value.trim() || null, quote: $('[data-quote]').value.trim() || null, transcript: $('[data-transcript]').value.trim() || null,
     theme: $('[data-theme]').value, lat, lng, sub_basin: $('[data-sub]').value.trim() || null, consent: $('[data-consent]').checked, status,
     media: media.map(({ type, url, caption }) => ({ type, url, caption })),
-    resilience: Object.fromEntries(LEVELS.map(l => { const f = $(`[data-level="${l.key}"]`); const when = f.querySelector('[data-when]').value.trim(), text = f.querySelector('[data-text]').value.trim(); return [l.key, when || text ? { when, text } : null]; }).filter(([, v]) => v)),
+    resilience: { strategies: strats.filter(x => x.text.trim() || x.when.trim()).map(x => ({ level: x.level, when: x.when.trim(), text: x.text.trim(), hazard: x.hazard || null, link: x.link || null })) },
     elevation: derived.elevation != null ? Math.round(derived.elevation) : null, river_km: derived.river_km != null ? +derived.river_km.toFixed(2) : null, zone: derived.zone || null
   };
   const num = $('[data-num]').value;
