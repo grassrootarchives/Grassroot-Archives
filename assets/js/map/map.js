@@ -98,7 +98,7 @@ export function createMap(container, opts) {
     // Watershed.
     if (opts.boundary && st.boundary && !off('boundary')) {
       const rings = opts.boundary.geometry ? opts.boundary.geometry.coordinates : opts.boundary;
-      parts.push(`<path d="${polyPath(rings)}" fill="none" stroke="${st.boundary.color}" stroke-width="${st.boundary.width}" stroke-dasharray="${st.boundary.dash}" opacity="${st.boundary.opacity || 1}" vector-effect="non-scaling-stroke"/>`);
+      parts.push(`<path d="${polyPath(rings)}" fill="none" stroke="${st.boundary.color}" stroke-width="${st.boundary.width}" stroke-dasharray="${st.boundary.dash}"${st.boundary.cap ? ` stroke-linecap="${st.boundary.cap}"` : ''} opacity="${st.boundary.opacity || 1}" vector-effect="non-scaling-stroke"/>`);
     }
     // Infrastructure polygons and lines under the river.
     if (state.layers.infra) {

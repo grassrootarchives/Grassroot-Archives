@@ -95,7 +95,7 @@ export async function createRealMap(container, opts) {
     const light = () => state.base === 'satellite';
     map.addLayer({ id: 'ga-contours', type: 'line', source: 'ga-contours', paint: { 'line-color': light() ? '#E9F2EC' : '#6E9E7E', 'line-opacity': ['case', ['get', 'major'], 0.9, 0.55], 'line-width': ['case', ['get', 'major'], 1.3, 0.6] } });
     map.addLayer({ id: 'ga-contour-labels', type: 'symbol', source: 'ga-contours', filter: ['get', 'major'], layout: { 'symbol-placement': 'line', 'text-field': ['concat', ['to-string', ['get', 'elev']], ' m'], 'text-font': ['Noto Sans Regular'], 'text-size': 10 }, paint: { 'text-color': '#2F6B4A', 'text-halo-color': '#F5F8F6', 'text-halo-width': 1.5 } });
-    map.addLayer({ id: 'ga-boundary', type: 'line', source: 'ga-boundary', paint: { 'line-color': '#E39A93', 'line-width': 1.6, 'line-dasharray': [3, 2] } });
+    map.addLayer({ id: 'ga-boundary', type: 'line', source: 'ga-boundary', paint: { 'line-color': '#E8857C', 'line-width': 3.2, 'line-dasharray': [3, 2] } });
     map.addLayer({ id: 'ga-reservoir', type: 'fill', source: 'ga-infra', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#9CC3E0', 'fill-opacity': 0.75, 'fill-outline-color': '#5E95BE' } });
     map.addLayer({ id: 'ga-canal', type: 'line', source: 'ga-infra', filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'lk'], 'canal']], paint: { 'line-color': '#5E95BE', 'line-width': 2 } });
     map.addLayer({ id: 'ga-pipeline', type: 'line', source: 'ga-infra', filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'lk'], 'pipeline']], paint: { 'line-color': '#C0504A', 'line-width': 1.4, 'line-dasharray': [3, 2] } });

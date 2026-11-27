@@ -23,7 +23,7 @@ function icon(style, key, interval) {
       break;
     case 'decor': g = `<g transform="scale(0.7)">${st.decor.tree(-10, 2, 1, false)}${st.decor.tree(8, 2, 1, true)}</g>`; break;
     case 'river': g = `<g transform="scale(${style === 'miniature' ? 0.55 : 0.9})">${st.river(LINE).replace(/vector-effect="non-scaling-stroke"/g, '').replace(/stroke-width="20"/, 'stroke-width="9"')}</g>`; break;
-    case 'boundary': g = `<path d="M-15,0 h30" stroke="${st.boundary?.color || '#D97F78'}" stroke-dasharray="5 4"/>`; break;
+    case 'boundary': g = `<path d="M-15,0 h30" stroke="${st.boundary?.color || '#C9625B'}" stroke-width="${st.boundary?.width || 2}" stroke-dasharray="${st.boundary?.dash || '6 4'}"${st.boundary?.cap ? ` stroke-linecap="${st.boundary.cap}"` : ''}/>`; break;
     case 'reservoir': g = st.reservoir('M-12,-5 h24 l-4,10 h-16z'); break;
     case 'canal': g = st.canal(style === 'watercolor' ? 'M-14,1 q7,-3 14,-1 t14,-1' : 'M-14,0 h28'); break;
     case 'pipeline': g = st.pipeline('M-14,0 h28'); break;
