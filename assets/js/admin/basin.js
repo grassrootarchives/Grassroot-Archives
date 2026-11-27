@@ -9,7 +9,7 @@ import { readGeoTIFF, readVectorFile, elevationFields, guessElevationField, grid
 import { traceRiver } from '../geo/hydro.js';
 import { gridRange } from '../geo/contour.js';
 import { cumulativeKm, riverProfile } from '../geo/geom.js';
-import { cleanLayer, summarise, osmSettlements, osmInfra, CSV_TEMPLATE } from '../geo/layers.js';
+import { cleanLayer, summarise, osmSettlements, osmInfra, CSV_TEMPLATE, slimLayer, jsonMB } from '../geo/layers.js';
 
 const app = document.getElementById('app');
 const { sb, user } = await requireAdmin('basins');
@@ -98,6 +98,7 @@ const main = layout(app, 'basins', user, `
         <div class="row"><button type="button" class="btn btn--small btn--quiet" data-osm="infra">Import from OpenStreetMap</button><button type="button" class="btn btn--small btn--quiet" data-clear="infra">Clear</button><a class="btn btn--small btn--quiet" download="water-infrastructure-template.csv" href="data:text/csv;charset=utf-8,${encodeURIComponent(CSV_TEMPLATE)}">CSV template</a></div>
         <span data-sum="infra" class="muted"></span></div>
     </div>
+    <div data-slim></div>
   </section>
 
   <section class="panel" aria-labelledby="h-save">
@@ -217,7 +218,25 @@ $('[data-styles]').addEventListener('click', e => {
 });
 
 // ---------- 04 layers ----------
-function sums() { $('[data-sum="settlements"]').textContent = 'Now: ' + summarise(S.settlements); $('[data-sum="infra"]').textContent = 'Now: ' + summarise(S.infra); }
+function sums() { $('[data-sum="settlements"]').textContent = 'Now: ' + summarise(S.settlements); $('[data-sum="infra"]').textContent = 'Now: ' + summarise(S.infra); slimCheck(); }
+
+// Large layer files load slowly on phones: offer to shrink any over 2 MB (saved files only; new imports are already slimmed).
+const LAYER_NAME = { settlements: 'settlements', infra: 'water infrastructure' };
+function slimCheck() {
+  const box = $('[data-slim]'); if (!box) return;
+  const big = ['settlements', 'infra'].filter(k => S[k]?.features?.length && jsonMB(S[k]) > 2 && !S.slimmed?.has(k));
+  box.innerHTML = big.length ? `<div class="notice is-warn" role="status" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+    <span>${big.map(k => `The ${LAYER_NAME[k]} file is ${jsonMB(S[k]).toFixed(1)} MB`).join('; ')}. Large files make the map slow to open on phones.</span>
+    <button type="button" class="btn btn--primary btn--small" data-shrink>Shrink and save</button></div>` : '';
+  box.querySelector('[data-shrink]')?.addEventListener('click', async e => {
+    e.currentTarget.disabled = true;
+    const report = big.map(k => { const before = jsonMB(S[k]), n0 = S[k].features.length; S[k] = slimLayer(S[k]); S.dirty.add(k); (S.slimmed ||= new Set()).add(k); return `${LAYER_NAME[k]}: ${before.toFixed(1)} MB → ${jsonMB(S[k]).toFixed(2)} MB (${S[k].features.length} of ${n0} features kept)`; });
+    preview(); sums();
+    await save();
+    toast('Shrunk ' + report.join('; '));
+    sp.insertAdjacentHTML('afterbegin', report.map(r => `<li class="ok">✓ ${esc(r)}</li>`).join(''));
+  });
+}
 sums();
 async function setLayer(kind, fc, note) {
   const { fc: clean, skipped } = cleanLayer(fc, kind, S.grid?.bounds);
@@ -268,6 +287,7 @@ async function save(mode) {
     const files = { ...(valley.data || {}) };
     for (const k of ['grid', 'river', 'boundary', 'settlements', 'infra']) {
       if (!S.dirty.has(k) || !S[k]) continue;
+      if (k === 'settlements' || k === 'infra') S[k] = slimLayer(S[k]);
       files[k] = await uploadJSON('maps', `${vid}/${k}-${Date.now().toString(36)}.json`, S[k]); note(`Uploaded ${k === 'infra' ? 'water infrastructure' : k}`);
     }
     if (S.grid) { row.bounds = S.grid.bounds; row.crs = S.info?.crs || valley.crs; }

@@ -141,3 +141,4 @@
 a.brand:hover, a.brand:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
 .admin__main { min-width: 0; }
 .admin__main .table-wrap { max-width: 100%; overflow-x: auto; }
+.notice.is-warn { border-color: #E2B866; background: #FBF1DC; color: #6B4A12; }
