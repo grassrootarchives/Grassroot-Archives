@@ -109,7 +109,7 @@ const main = layout(app, 'basins', user, `
       ${v.status === 'published' ? `<button type="button" class="btn btn--quiet" data-save="unpublish">Unpublish</button>` : ''}
     </div>
     <ul class="progress" data-saveprogress aria-live="polite"></ul>
-    ${valley ? `<details style="margin-top:12px"><summary class="warn">Delete this river basin</summary><p class="muted">This deletes the valley and all its stories. It cannot be undone. Type the valley name to confirm.</p>
+    ${valley ? `<details style="margin-top:12px"><summary class="warn">Delete this river basin</summary><p class="muted">This deletes the valley and all its stories from the site. You can bring them back from History; the map files are kept. Type the valley name to confirm.</p>
       <div class="row"><label class="field"><span>Valley name</span><input data-delname></label><button type="button" class="btn btn--danger" data-delete>Delete permanently</button></div></details>` : ''}
   </section>`);
 

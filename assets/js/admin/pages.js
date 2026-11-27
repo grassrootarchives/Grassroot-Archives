@@ -16,7 +16,7 @@ let blocks = [], sel = 0, dirty = false;
 let theme = { palette: settings?.palette || 'pastel', font: settings?.font || 'plex' };
 const PALETTES = { pastel: ['Pastel river', '#F5F8F6', '#BFD9EA', '#E3F1E7', '#FBE3E0'], vellum: ['Vellum survey', '#F7F6F2', '#1F2420', '#E4E8DD', '#F1E3D8'], slate: ['Slate blueprint', '#14181C', '#8FB8D8', '#1F3027', '#3A2626'] };
 const FONTS = { plex: ['Newsreader', 'with IBM Plex Mono', "'Newsreader', Georgia, serif", "'IBM Plex Mono', monospace"], inter: ['Lora', 'with Inter', "'Lora', Georgia, serif", "'Inter', sans-serif"], grotesk: ['Source Serif', 'with Space Grotesk', "'Source Serif 4', Georgia, serif", "'Space Grotesk', sans-serif"] };
-const KIND_LABEL = { home: 'Home', about: 'About', valley_template: 'Valley map (all valleys)', index_template: 'The Archive (all valleys)' };
+const KIND_LABEL = { home: 'Home', about: 'About', valley_template: 'Valley map page (all valleys)', index_template: 'The Archive (all valleys)' };
 const REQUIRED = { valley_template: 'map', index_template: 'stories' };
 const uid = () => 'b' + Math.random().toString(36).slice(2, 9);
 const NEW = { hero: { title: 'New heading', body: 'Short introduction.', image: 'assets/img/hero.jpg' }, heading: { title: 'New section heading' }, text: { body: 'New paragraph. Edit it on the right.' }, section: { label: 'Section label', body: 'Text for this section.' }, cards: { title: '', items: ['Card one | | Short text.', 'Card two | | Short text.', 'Card three | | Short text.'] }, phases: { title: 'Phases', items: ['Step one | Phase I | What happens.', 'Step two | Phase II | What happens.'] }, chips: { title: 'Tags', items: ['Tag one', 'Tag two'] }, quote: { body: 'A quote from an interview.', title: 'Speaker', bg: 'green' }, image: { image: '', body: 'Caption' }, button: { title: 'Button label →', href: 'valley.html' }, valleys: { title: 'Explore a valley', body: '' }, contact: { eyebrow: 'Contact', body: 'Get in touch.', email: '', title: 'Write to us' } };
@@ -100,7 +100,7 @@ function pageSettings() {
     p.menu_order = c; other.menu_order = a; pages.sort((x, y) => x.menu_order - y.menu_order); draw(); toast('Menu order changed.');
   }));
   $('[data-pdel]')?.addEventListener('click', async () => {
-    if (!confirm(`Delete the page “${p.title}”? This cannot be undone.`)) return;
+    if (!confirm(`Delete the page “${p.title}”? You can bring it back from History if needed.`)) return;
     const { error } = await sb.from('pages').delete().eq('id', p.id); if (error) return toast(errMsg(error), true);
     pages = pages.filter(x => x.id !== p.id); dirty = false; load(pages[0]); toast('Page deleted.');
   });

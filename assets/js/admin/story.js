@@ -149,7 +149,9 @@ async function loadValley() {
   data = await loadValleyData(valley);
   const { data: others } = await sb.from('stories').select('id,number,place,lat,lng').eq('valley_id', valley.id);
   map = createMap(el, { ...data, style: valley.map_style, interval: valley.contour_interval, stories: (others || []).filter(o => o.id !== story?.id), layers: { settlements: true, infra: true, pins: true },
-    onMapClick: ({ lon, lat }) => { $('[data-lat]').value = lat.toFixed(5); $('[data-lng]').value = lon.toFixed(5); derive(); } });
+    onMapClick: ({ lon, lat }) => { $('[data-lat]').value = lat.toFixed(5); $('[data-lng]').value = lon.toFixed(5); derive(); },
+    // the other stories' pins: open that story in a new tab, so this form is not lost
+    onPinClick: o => { window.open(siteUrl('admin/story.html?id=' + o.id), '_blank', 'noopener'); toast(`Opened story ${o.number ?? ''} · ${o.place} in a new tab.`); } });
   derive();
 }
 let derived = {};
@@ -278,7 +280,7 @@ async function save(status) {
   } catch (e) { fail(errMsg(e)); }
 }
 $('[data-del]')?.addEventListener('click', async () => {
-  if (!confirm('Delete this story? This cannot be undone.')) return;
+  if (!confirm('Delete this story? It disappears from the site straight away. You can bring it back from History if needed.')) return;
   const { error } = await sb.from('stories').delete().eq('id', story.id);
   if (error) { toast(errMsg(error), true); return; }
   location.replace(siteUrl('admin/stories.html?deleted=1'));
