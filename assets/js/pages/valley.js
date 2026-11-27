@@ -7,6 +7,7 @@ import { siteUrl } from '../config.js';
 import { createMap } from '../map/map.js';
 import { STYLES } from '../map/symbols.js';
 import { mountLegend } from '../map/legend.js';
+import { LEVELS, hasResilience } from '../resilience.js';
 import { createRealMap } from '../map/realmap.js';
 import { formatDMS, zoneFor } from '../geo/geom.js';
 
@@ -218,6 +219,10 @@ function render(site, valley, template, stories, data) {
         ${s.interviewee ? `<div class="attrib">— ${esc(s.interviewee)}${s.age ? ', ' + esc(s.age) : ''}${s.role ? ' | ' + esc(s.role) : ''}</div>` : ''}
         ${media(s)}
         ${s.transcript ? `<div><span class="label" style="display:block;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:12px">Narrative &amp; transcript</span><div class="prose">${md(s.transcript)}</div></div>` : ''}
+        ${hasResilience(s.resilience) ? `<section class="resil" aria-label="Resilience strategies"><span class="label" style="display:block;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px">Resilience strategies</span>
+          ${LEVELS.filter(l => s.resilience[l.key]?.text?.trim() || s.resilience[l.key]?.when?.trim()).map(l => { const r = s.resilience[l.key]; return `<div class="resil__level">
+            <div class="resil__head"><span class="resil__n">${l.n}</span><strong>${esc(l.name)}</strong>${r.when ? `<span class="resil__when">${esc(r.when)}</span>` : ''}</div>
+            ${r.text ? `<div class="prose">${md(r.text)}</div>` : ''}</div>`; }).join('')}</section>` : ''}
       </div>
     </article>`;
     drawerRoot.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeStory));

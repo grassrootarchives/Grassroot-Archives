@@ -1,5 +1,6 @@
 // Add or edit a story: place it by latitude/longitude (or a click), attach media, publish.
 import { requireAdmin, layout, toast, errMsg, upload, safeName, param } from './common.js';
+import { LEVELS } from '../resilience.js';
 import { loadValleyData, dataUrl } from '../db.js';
 import { esc } from '../ui.js';
 import { siteUrl } from '../config.js';
@@ -17,7 +18,7 @@ const id = param('id');
 const { data: valleys } = await sb.from('valleys').select('*').order('menu_order').order('name');
 let story = null;
 if (id) { const { data } = await sb.from('stories').select('*').eq('id', id).maybeSingle(); story = data; }
-const s = story || { valley_id: param('valley') || valleys?.find(v => v.data?.grid)?.id || valleys?.[0]?.id, place: '', interviewee: '', age: null, role: '', quote: '', transcript: '', theme: 'Oral History', lat: null, lng: null, sub_basin: '', media: [], consent: false, status: 'draft' };
+const s = story || { valley_id: param('valley') || valleys?.find(v => v.data?.grid)?.id || valleys?.[0]?.id, place: '', interviewee: '', age: null, role: '', quote: '', transcript: '', theme: 'Oral History', lat: null, lng: null, sub_basin: '', media: [], resilience: {}, consent: false, status: 'draft' };
 let media = (s.media || []).map(m => ({ ...m }));
 let shown = new Set([...media.map(m => m.type), ...(s.transcript ? ['document'] : [])]);
 if (!shown.size) { shown.add('audio'); shown.add('photo'); }
@@ -51,6 +52,15 @@ const main = layout(app, 'stories', user, `
       <label class="field"><span>Pull-quote</span><textarea class="serif" data-quote rows="2" style="font-style:italic">${esc(s.quote || '')}</textarea></label>
       <div class="row"><label class="field"><span>Theme</span><select data-theme>${THEMES.map(t => `<option ${t === s.theme ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         <label class="field" style="flex:0 1 120px"><span>Number</span><input data-num type="number" min="1" value="${s.number ?? ''}" placeholder="auto"></label></div>
+      <h2 style="margin-top:8px" id="h-res">04 · Resilience strategies</h2>
+      <p class="muted" style="margin:0">How people cope and adapt, at three levels: from the home outwards. The place is already set by the latitude and longitude; add when each strategy was used. Leave a level empty if the story doesn't speak to it.</p>
+      <div class="levels" role="group" aria-labelledby="h-res">${LEVELS.map(l => { const r = (s.resilience || {})[l.key] || {}; return `
+        <fieldset class="level" data-level="${l.key}">
+          <legend><span class="level__n">${l.n}</span> ${esc(l.name)}</legend>
+          <span class="hint">${esc(l.hint)}</span>
+          <label class="field"><span>When</span><input data-when value="${esc(r.when || '')}" placeholder="e.g. Since the 2015 drought · Every summer · 1972–1975"></label>
+          <label class="field"><span>Strategies</span><textarea data-text rows="5" placeholder="Describe the strategies. Start a line with - for a bullet point:&#10;- Storing water in drums&#10;- Shifting to millets">${esc(r.text || '')}</textarea><span class="hint">Start a line with <code>-</code> for a bullet point. Blank lines start new paragraphs.</span></label>
+        </fieldset>`; }).join('')}</div>
       <label class="check"><input type="checkbox" data-consent ${s.consent ? 'checked' : ''}> Consent to publish is recorded for this interview</label>
       <div class="row" style="padding-top:8px;border-top:1px solid var(--line)">
         <button type="button" class="btn" data-save="draft">Save draft</button>
@@ -185,6 +195,7 @@ async function save(status) {
     role: $('[data-role]').value.trim() || null, quote: $('[data-quote]').value.trim() || null, transcript: $('[data-transcript]').value.trim() || null,
     theme: $('[data-theme]').value, lat, lng, sub_basin: $('[data-sub]').value.trim() || null, consent: $('[data-consent]').checked, status,
     media: media.map(({ type, url, caption }) => ({ type, url, caption })),
+    resilience: Object.fromEntries(LEVELS.map(l => { const f = $(`[data-level="${l.key}"]`); const when = f.querySelector('[data-when]').value.trim(), text = f.querySelector('[data-text]').value.trim(); return [l.key, when || text ? { when, text } : null]; }).filter(([, v]) => v)),
     elevation: derived.elevation != null ? Math.round(derived.elevation) : null, river_km: derived.river_km != null ? +derived.river_km.toFixed(2) : null, zone: derived.zone || null
   };
   const num = $('[data-num]').value;

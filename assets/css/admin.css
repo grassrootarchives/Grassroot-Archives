@@ -103,3 +103,10 @@
 .login__form form { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; }
 .notice { padding: 12px 14px; border: 1px solid var(--sage); background: var(--green-2); color: #24503A; }
 .notice.is-error { border-color: #E39A93; background: var(--red-2); color: #9A3530; }
+
+/* resilience levels in the story form */
+.levels { display: flex; flex-direction: column; gap: 12px; }
+.level { margin: 0; border: 1px solid var(--line); background: var(--panel); padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.level legend { padding: 0 6px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+.level__n { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--ink); border-radius: 50%; font-size: 11px; }
+.level textarea { font-family: var(--font-display); font-size: 16px; line-height: 1.5; }

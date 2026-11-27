@@ -17,8 +17,20 @@ export function inline(text) {
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, t, u) => `<a href="${esc(safeHref(u.replace(/&amp;/g, '&')))}">${t}</a>`);
 }
 // Paragraphs separated by blank lines; single newlines become <br>.
+// Paragraphs split on blank lines; lines starting with "- ", "* " or "• " become bullet points.
 export function md(text) {
-  return String(text ?? '').trim().split(/\n\s*\n/).filter(Boolean).map(p => `<p>${inline(p).replace(/\n/g, '<br>')}</p>`).join('');
+  const bullet = /^\s*[-*•]\s+/;
+  return String(text ?? '').trim().split(/\n\s*\n/).filter(Boolean).map(block => {
+    const out = []; let para = [], list = [];
+    const flushP = () => { if (para.length) out.push(`<p>${para.map(inline).join('<br>')}</p>`); para = []; };
+    const flushL = () => { if (list.length) out.push(`<ul>${list.map(l => `<li>${inline(l)}</li>`).join('')}</ul>`); list = []; };
+    for (const line of block.split('\n')) {
+      if (bullet.test(line)) { flushP(); list.push(line.replace(bullet, '')); }
+      else if (list.length && /^\s{2,}\S/.test(line)) list[list.length - 1] += ' ' + line.trim();
+      else { flushL(); para.push(line); }
+    }
+    flushP(); flushL(); return out.join('');
+  }).join('');
 }
 
 export function applyTheme(settings) {

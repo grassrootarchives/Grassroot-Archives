@@ -246,3 +246,17 @@ table.index td.num { text-align: right; }
 .basebar .check { min-height: 28px; }
 .pin.pin--ml { position: relative; transform: none; pointer-events: auto; }
 .realmap .maplibregl-ctrl-attrib { font-size: 10px; }
+
+/* bullet lists in long text */
+.prose ul { margin: 0 0 1em; padding-left: 1.2em; }
+.prose ul:last-child { margin-bottom: 0; }
+.prose li { margin: 0 0 .3em; }
+/* resilience strategies in the story drawer */
+.resil { display: flex; flex-direction: column; gap: 14px; }
+.resil__level { display: flex; flex-direction: column; gap: 8px; padding: 12px 0 0; border-top: 1px dashed var(--line); }
+.resil__level:first-of-type { border-top: 0; padding-top: 0; }
+.resil__head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; letter-spacing: .06em; }
+.resil__n { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--ink); border-radius: 50%; font-size: 11px; }
+.resil__when { color: var(--muted); font-size: 12px; }
+.resil__when::before { content: "· "; }
+.drawer .resil .prose { font-size: 17px; }
