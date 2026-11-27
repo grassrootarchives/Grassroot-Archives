@@ -83,7 +83,7 @@ const main = layout(app, 'basins', user, `
 
   <section class="panel" aria-labelledby="h-style">
     <h2 id="h-style">03 · Map style <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(can be changed any time)</span></h2>
-    <div class="style-pick" data-styles>${Object.entries(STYLES).map(([k, s]) => `<button type="button" data-style="${k}" aria-pressed="${k === S.style}"><div class="thumb" data-thumb="${k}"></div><strong>${esc(s.name)}</strong></button>`).join('')}</div>
+    <div class="style-pick" data-styles>${Object.entries(STYLES).map(([k, s]) => `<button type="button" data-pick-style="${k}" aria-pressed="${k === S.style}"><div class="thumb" data-thumb="${k}"></div><strong>${esc(s.name)}</strong></button>`).join('')}</div>
   </section>
 
   <section class="panel" aria-labelledby="h-layers">
@@ -210,9 +210,9 @@ zonesUI();
 
 // ---------- 03 style ----------
 $('[data-styles]').addEventListener('click', e => {
-  const b = e.target.closest('[data-style]'); if (!b) return;
-  S.style = b.dataset.style;
-  main.querySelectorAll('[data-style]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  const b = e.target.closest('[data-pick-style]'); if (!b) return;
+  S.style = b.dataset.pickStyle;
+  main.querySelectorAll('[data-pick-style]').forEach(x => x.setAttribute('aria-pressed', x === b));
   previewMap ? previewMap.setStyle(S.style) : preview();
 });
 
