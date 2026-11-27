@@ -1,4 +1,4 @@
-// River index: every story of a valley as a plain table (no map loads).
+// The Archive (river-index.html): every story of a valley as a plain table (no map loads).
 import { boot, shell, setMeta } from './common.js';
 import { getValley, getStories, getPageBy } from '../db.js';
 import { renderBlocks } from '../blocks.js';
@@ -42,6 +42,6 @@ try {
       app.querySelectorAll('[data-sort]').forEach(b => b.addEventListener('click', () => { down = b.dataset.sort === 'down'; draw(); app.querySelector(`[data-sort="${b.dataset.sort}"]`).focus(); }));
     };
     draw();
-    setMeta(`River index · ${valley.name} · ${site.settings.site_name}`);
+    setMeta(`The Archive · ${valley.name} · ${site.settings.site_name}`);
   }
 } catch (err) { app.innerHTML = errorBox(err); }

@@ -2,7 +2,7 @@
 
 A map-led archive of river valleys: interviews, photographs, sound and text placed on maps, from the headwaters to the household.
 
-- **Public site:** Home, About, a Valley map for every valley (filters, live readout, map layers, legend, elevation profile and a story drawer), a River index, and custom pages.
+- **Public site:** Home, About, a Valley map for every valley (filters, live readout, map layers, legend, elevation profile and a story drawer), The Archive (every story of a valley as a table), and custom pages.
 - **Admin (CMS)** at `/admin/`: river basins (upload a georeferenced elevation model or contour lines and the valley map is generated in the browser), stories placed by latitude/longitude, a block-based page editor with site theme, settings and admins.
 - **Three map styles** for every valley, drawn from the same terrain: contour survey, watercolour and miniature painting, with settlement and water-infrastructure layers and matching legends.
 
@@ -13,7 +13,7 @@ The site is plain HTML, CSS and JavaScript (ES modules), with no build step. It 
 ```
 index.html, about.html, page.html      block pages (content from the `pages` table)
 valley.html?v=<slug>                   valley map page (template page + map app)
-river-index.html?v=<slug>              story table for a valley
+river-index.html?v=<slug>              The Archive: story table for a valley
 admin/*.html                           the CMS (login required)
 assets/css/site.css, admin.css         design tokens and components (see the design guide)
 assets/js/map/                         SVG map renderer and the three styles

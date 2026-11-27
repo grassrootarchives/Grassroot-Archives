@@ -207,7 +207,7 @@ async function save(status) {
     story = data;
     if (!id) history.replaceState(null, '', '?id=' + data.id);
     const v = valleys.find(x => x.id === row.valley_id);
-    res.innerHTML = `<div class="notice" role="status">${status === 'published' ? `✓ Published. The pin is on ${esc(v.name)}'s map, river index and profile.${v.status !== 'published' ? ' (The valley itself is still a draft.)' : ''}` : '✓ Saved as draft.'} ${v.status === 'published' ? `<a href="${esc(siteUrl('valley.html?v=' + encodeURIComponent(v.slug) + '#story-' + data.id))}" target="_blank" rel="noopener">See it on the valley page ↗</a>` : ''}</div>`;
+    res.innerHTML = `<div class="notice" role="status">${status === 'published' ? `✓ Published. The pin is on ${esc(v.name)}'s map, in The Archive and on the profile.${v.status !== 'published' ? ' (The valley itself is still a draft.)' : ''}` : '✓ Saved as draft.'} ${v.status === 'published' ? `<a href="${esc(siteUrl('valley.html?v=' + encodeURIComponent(v.slug) + '#story-' + data.id))}" target="_blank" rel="noopener">See it on the valley page ↗</a>` : ''}</div>`;
   } catch (e) { fail(errMsg(e)); }
 }
 $('[data-del]')?.addEventListener('click', async () => {

@@ -54,7 +54,7 @@ export function header({ pages, valleys, current, over = false, valley = null, s
   const first = valley || published[0] || null;
   const items = (pages || []).filter(p => p.show_in_menu && p.status === 'published');
   const nav = items.map(p => {
-    const label = p.kind === 'valley_template' ? 'Valley map' : p.kind === 'index_template' ? 'River index' : p.title;
+    const label = p.kind === 'valley_template' ? 'Valley map' : p.kind === 'index_template' ? 'The Archive' : p.title;
     return `<a href="${esc(hrefFor(p, first))}"${p.kind === current || p.slug === current ? ' aria-current="page"' : ''}>${esc(label)}</a>`;
   }).join('');
   const switcher = valley ? `
