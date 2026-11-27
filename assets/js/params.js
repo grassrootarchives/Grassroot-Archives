@@ -1,5 +1,6 @@
 // The six transect parameters: definition, example and a technical diagram for each.
-// Used by the Tags (chips) and Cards blocks: any item whose title matches a parameter opens a popup.
+// Also Transects, Households and The archive as a second set ('How we read a valley').
+// Used by the Tags (chips) and Cards blocks: any item whose title matches opens a popup.
 import { esc } from './ui.js';
 
 const T = (x, y, s, cls = 'tx', extra = '') => `<text x="${x}" y="${y}" class="${cls}" ${extra}>${s}</text>`;
@@ -120,6 +121,36 @@ ${T(256, 24, 'LITRES / PERSON / DAY')}
 ${seasons.map(([n, parts], i) => { let y = 220; const x = 290 + i * 74; return parts.map(([k, v]) => { y -= v * 2.6; return `<rect x="${x}" y="${y}" width="42" height="${v * 2.6}" class="${SC[k]}"/>`; }).join('') + T(x - 4, 236, n) + T(x + 8, y - 6, String(parts.reduce((s, p) => s + p[1], 0)), 'tb'); }).join('')}
 <rect x="256" y="244" width="10" height="10" class="b-tap"/>${T(270, 253, 'TAP')}<rect x="306" y="244" width="10" height="10" class="b-bw"/>${T(320, 253, 'BOREWELL')}<rect x="386" y="244" width="10" height="10" class="b-tk"/>${T(400, 253, 'TANKER')}<rect x="456" y="244" width="10" height="10" class="b-wk"/>${T(470, 253, 'WALK')}`, 'A household drawing water from a tap, borewell, tanker and a long walk, with a chart showing litres per person per day falling below the 55 litre norm in summer');
 
+
+// ---- Transects: plan of a valley with transect lines, and the parameter matrix beneath
+const TX = [130, 210, 290, 370, 450], top = x => 16 + (x - 10) * 0.06, bot = x => 106 + (x - 10) * 0.08;
+const ZONES = ['GHATS', 'URBAN', 'MID', 'COMMAND', 'SEMI-ARID'];
+const ROWS = [['FLOW', 'w2'], ['WATER INFRA', 'w2'], ['ROADS', 'w2'], ['SETTLEMENT', 'b-bw'], ['INDUSTRY', 'b-bw'], ['HOUSEHOLDS', 'b-tk']];
+const fig7 = svg(`
+<path d="M10 16 L510 46 M10 106 L510 146" class="la dash" fill="none"/>${T(330, 146, 'WATERSHED BOUNDARY')}
+<path d="M10 50 C70 40 100 90 150 80 S230 50 270 85 S360 130 420 110 S480 100 506 120" class="lr" fill="none"/>
+<path d="M470 104 L500 116" class="lw" marker-end="url(#pb)"/>${T(462, 96, 'FLOW')}
+${TX.map((x, i) => `<path d="M${x} ${top(x)} V${bot(x)}" class="ln" marker-start="url(#tick)" marker-end="url(#tick)"/><text x="${x}" y="${top(x) - 6}" class="tb" text-anchor="middle">T${i + 1}</text>`).join('')}
+${T(20, 140, 'PLAN · NOT TO SCALE')}
+${ZONES.map((z, i) => `<text x="${TX[i]}" y="166" class="tx" text-anchor="middle">${z}</text>`).join('')}
+<path d="M10 171 H510" class="ln thin"/>
+${ROWS.map(([n, c], r) => `${T(10, 182 + r * 12, n)}${TX.map(x => `<rect x="${x - 4}" y="${175 + r * 12}" width="8" height="8" class="${c}"/>`).join('')}<path d="M10 ${185 + r * 12} H510" class="ln thin" opacity=".25"/>`).join('')}
+${T(10, 256, 'SAME SIX PARAMETERS RECORDED AT EVERY TRANSECT')}`, 'Plan of a river valley with five transect lines cut across it from one watershed edge to the other, and a grid showing the same six parameters recorded at each');
+
+// ---- The archive: from field recording to a structured record to its outputs
+const FIELDS = [['id', 'GA-BHM-0042'], ['valley', 'Bhima'], ['lat, long', '18.52 N, 73.86 E'], ['zone', 'Mid-valley · T3'], ['narrator', 'Farmer, 54'], ['media', 'audio · photo · text'], ['hazard', 'Drought · step 3'], ['strategy', '#2 Neighbourhood'], ['consent', 'recorded ✓']];
+const OUTS = ['VALLEY MAP PIN', 'ARCHIVE TABLE', 'CSV EXPORT', 'PRINTED KIT'];
+const fig8 = svg(`
+${T(10, 22, 'FIELD')}
+${['AUDIO', 'PHOTO', 'TEXT'].map((n, i) => `<rect x="10" y="${40 + i * 50}" width="86" height="30" class="ln fill-p"/>${T(20, 59 + i * 50, n)}<path d="M96 ${55 + i * 50} C120 ${55 + i * 50} 130 117 150 117" class="ln" marker-end="url(#pa)" fill="none"/>`).join('')}
+<rect x="152" y="30" width="208" height="${20 + FIELDS.length * 18}" class="ln fill-s"/>
+<rect x="152" y="30" width="208" height="20" class="fill-a2"/><text x="160" y="44" class="tb" style="fill:#fff">STORY RECORD</text>
+${FIELDS.map(([k, v], i) => `${T(160, 63 + i * 18, k)}<text x="226" y="${63 + i * 18}" class="tx" style="fill:var(--ink)">${v}</text>${i ? `<path d="M152 ${50 + i * 18} H360" class="ln thin" opacity=".35"/>` : ''}<path d="M220 50 V${50 + FIELDS.length * 18}" class="ln thin" opacity=".35"/>`).join('')}
+${T(400, 22, 'OUTPUTS')}
+${OUTS.map((n, i) => `<path d="M360 117 C376 117 376 ${55 + i * 44} 394 ${55 + i * 44}" class="ln" marker-end="url(#pa)" fill="none"/><rect x="396" y="${40 + i * 44}" width="114" height="30" class="ln ${i === 3 ? 'fill-a' : 'fill-p'}"/>${T(404, 59 + i * 44, n)}`).join('')}
+${T(396, 228, 'REGIONAL LANGUAGES')}
+${T(10, 254, 'ONE SCHEMA FOR EVERY VALLEY · SAMPLE RECORD')}`, 'Diagram of field recordings becoming one structured story record, which feeds a map pin, a row in The Archive, a CSV export and a printed kit');
+
 export const PARAMS = [
   { key: 'river flows', title: 'River flows', fig: fig1, cap: 'Channel cross-section and annual discharge',
     def: 'How much water the river carries, when, and how fast, across the seasons: the lean summer flow and the monsoon flood. It also covers the sediment the river moves and the landforms it builds and erodes: sand bars, banks and floodplains.',
@@ -141,11 +172,29 @@ export const PARAMS = [
     ex: 'In the monsoon a family of five meets its needs from a tap and a borewell. By May the tap is dry, the borewell yields little, and a tanker and a long walk make up the rest, well below the Jal Jeevan Mission norm of 55 litres per person per day.' }
 ];
 
+const IDEAS = [
+  { key: 'transects', title: 'Transects', fig: fig7, cap: 'Transect lines across a valley and what each records',
+    def: 'A transect is a line cut across the valley at a chosen point along the river, from one edge of the watershed to the other. At every transect we record the same six parameters, so places upstream and downstream can be compared side by side. Transects are case studies picked to cover the range of the valley, not a statistical sample.',
+    ex: 'In the Bhima valley, one transect might cross the rain-fed Ghats near the source, another the urban stretch near Pune, another the irrigated command area below a dam, and another the drought-prone semi-arid stretch near Solapur. Each one records river flows, water and roads, settlements and farms, industries, and households.' },
+  PARAMS[5],
+  { key: 'the archive', title: 'The archive', fig: fig8, cap: 'From the field to the record to its outputs',
+    def: 'The public record the project builds. Every story is located by latitude and longitude, tied to its valley and transect, and linked to the hazard it responds to, the step in the chain of events, and the level (home, neighbourhood, wider region) at which people acted. Each valley uses the same structure, so the archive can be repeated and compared.',
+    ex: 'A farmer describes how the village shares one borewell on a rota every summer. That interview becomes one record: a pin on the valley map, a row in The Archive, strategy 2 at neighbourhood level linked to Drought · step 3 "Drinking water runs short", a line in the CSV, and a page in the printed kit in the regional language.' }
+];
+const GROUPS = { param: { label: 'Transect parameter', items: PARAMS }, idea: { label: 'How we read a valley', items: IDEAS } };
+
 const norm = s => String(s || '').toLowerCase().replace(/&/g, 'and').replace(/\s+/g, ' ').trim();
+// Reference to a popup as "group:index", or '' if the title is not a known idea.
+// Looks in the preferred group first, then the other, unless strict.
+export function paramRef(title, prefer = 'param', strict = false) {
+  const t = norm(title), order = strict ? [prefer] : [prefer, ...Object.keys(GROUPS).filter(g => g !== prefer)];
+  for (const g of order) { const i = GROUPS[g].items.findIndex(p => p.key === t); if (i >= 0) return `${g}:${i}`; }
+  return '';
+}
 export const paramIndex = title => PARAMS.findIndex(p => p.key === norm(title));
 
 let dlg;
-function open(i) {
+function open(ref) {
   if (!dlg) {
     dlg = document.createElement('dialog');
     dlg.className = 'pmodal';
@@ -154,22 +203,24 @@ function open(i) {
     dlg.addEventListener('click', e => {
       if (e.target === dlg || e.target.closest('[data-pclose]')) dlg.close();
       const go = e.target.closest('[data-pgo]');
-      if (go) render(+go.dataset.pgo);
+      if (go) render(go.dataset.pgo);
     });
   }
-  render(i);
+  render(ref);
   if (!dlg.open) dlg.showModal();
 }
-function render(i) {
-  const n = PARAMS.length, p = PARAMS[(i + n) % n], k = (i + n) % n, num = String(k + 1).padStart(2, '0');
+function render(ref) {
+  const [g, raw] = String(ref).split(':'), G = GROUPS[g] || GROUPS.param, items = G.items, n = items.length;
+  const k = ((+raw % n) + n) % n, p = items[k], num = String(k + 1).padStart(2, '0'), prev = (k - 1 + n) % n, next = (k + 1) % n;
+  const gk = GROUPS[g] ? g : 'param';
   dlg.innerHTML = `<div class="pmodal__inner">
-<header class="pmodal__head"><div><span class="eyebrow">Transect parameter ${num} of 0${n}</span><h2 class="display" id="pmodal-title">${esc(p.title)}</h2></div>
+<header class="pmodal__head"><div><span class="eyebrow">${esc(G.label)} ${num} of ${String(n).padStart(2, '0')}</span><h2 class="display" id="pmodal-title">${esc(p.title)}</h2></div>
 <button class="pmodal__x" data-pclose aria-label="Close">×</button></header>
 <div class="pmodal__body">
 <div class="pmodal__text"><span class="label">Definition</span><p>${esc(p.def)}</p><span class="label">Example</span><p>${esc(p.ex)}</p></div>
 <figure class="pfig"><div class="pfig__frame">${p.fig}</div><figcaption><span>FIG. ${num}</span> ${esc(p.cap)} · illustrative, not to scale</figcaption></figure>
 </div>
-<footer class="pmodal__foot"><button class="btn btn--quiet btn--small" data-pgo="${k - 1}">← ${esc(PARAMS[(k - 1 + n) % n].title)}</button><button class="btn btn--quiet btn--small" data-pgo="${k + 1}">${esc(PARAMS[(k + 1) % n].title)} →</button></footer>
+<footer class="pmodal__foot"><button class="btn btn--quiet btn--small" data-pgo="${gk}:${prev}">← ${esc(items[prev].title)}</button><button class="btn btn--quiet btn--small" data-pgo="${gk}:${next}">${esc(items[next].title)} →</button></footer>
 </div>`;
   dlg.querySelector('.pmodal__x').focus();
 }
@@ -177,6 +228,6 @@ function render(i) {
 export function wireParams(root = document) {
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-param]');
-    if (b) { e.preventDefault(); open(+b.dataset.param); }
+    if (b) { e.preventDefault(); open(b.dataset.param); }
   });
 }
