@@ -11,8 +11,8 @@ const TEXTS = [
     what: 'Flat land beside the river, built from its own silt: fertile and well watered, and the first to flood when the river overtops its banks.',
     look: 'Fields and homes close to the banks, embankments and causeways, and how often families have had to move or rebuild.' }],
   [/command/i, {
-    what: 'Land served by a canal system from a dam upstream. Farming here depends on canal releases, and the farms at the far end of a canal often get water last.',
-    look: 'Who gets water, when, and how far each household is from the canal; borewells that fill the gaps; crops that change with the releases.' }],
+    what: 'In irrigation, a command area is the land a dam, weir or canal system can water. It is not one stretch of the river: command areas lie wherever canals reach, from the hills to the plains, and one river can have several. In this valley the name has been given to the section shown here.',
+    look: 'Who the canals actually reach and who they miss, when water is released, how far each household is from a canal, and the borewells and tankers that fill the gaps.' }],
   [/tail|lower|delta|mouth|end/i, {
     what: 'The last stretch of the river, at the end of canals and pipelines. Flow depends on what upstream users leave; the land is flatter and often drier.',
     look: 'Drought tends to last longest here, and floods spread widest when they come. Tankers, long walks for water and seasonal migration are common signs of distress.' }]
