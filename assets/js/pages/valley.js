@@ -230,6 +230,7 @@ function render(site, valley, template, stories, data) {
         ${media(s)}
         ${s.transcript ? `<div><span class="label" style="display:block;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:12px">Narrative &amp; transcript</span><div class="prose">${md(s.transcript)}</div></div>` : ''}
         ${hasResilience(s.resilience) ? resilienceHTML(s.resilience) : ''}
+        ${s.flashpoints ? `<section class="flash" aria-label="Flashpoints"><span class="label">Flashpoints</span><div class="prose">${md(s.flashpoints)}</div></section>` : ''}
       </div>
     </article>`;
     drawerRoot.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeStory));

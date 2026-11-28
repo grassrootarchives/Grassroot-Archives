@@ -390,3 +390,4 @@ table.index td.num { text-align: right; }
 .pmodal__text.prose p { font-family: var(--font-display); font-size: 18px; line-height: 1.55; }
 .phases li .card__more { margin-top: 8px; }
 .popup-slot { border: 1.5px dashed var(--line-2); padding: 28px 16px 14px; display: flex; flex-direction: column; gap: 4px; background: var(--surface); }
+.drawer .flash { border-left: 3px solid var(--clay); padding: 4px 0 4px 14px; display: flex; flex-direction: column; gap: 6px; }

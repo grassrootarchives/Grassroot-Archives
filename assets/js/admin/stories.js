@@ -56,6 +56,7 @@ main.querySelector('[data-csv]').addEventListener('click', async e => {
       ['Latitude', s => s.lat], ['Longitude', s => s.lng], ['Elevation (m)', s => s.elevation], ['River km', s => s.river_km],
       ['Zone', s => s.zone], ['Sub-basin', s => s.sub_basin], ['Pull-quote', s => s.quote], ['Narrative & transcript', s => s.transcript],
       ['Resilience strategies', s => strategiesOf(s.resilience).map((x, i) => `${i + 1}. [${levelOf(x.level).name}]${x.hazard && x.link ? ' (responds to ' + linkLabel(x.hazard, x.link) + ')' : ''}${x.when ? ' ' + x.when + ':' : ''} ${x.text || ''}`.trim()).join('\n\n')],
+      ['Flashpoints', s => s.flashpoints],
       ['Strategy count', s => strategiesOf(s.resilience).length],
       ['Hazard chain steps', s => [...new Set(strategiesOf(s.resilience).filter(x => x.hazard && x.link).map(x => linkLabel(x.hazard, x.link)))].join(' | ')],
       ['Media types', s => [...new Set((s.media || []).map(m => m.type))].join(', ')],
