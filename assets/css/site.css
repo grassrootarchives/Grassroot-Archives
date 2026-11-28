@@ -193,6 +193,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .drawer .attrib { letter-spacing: .08em; font-weight: 500; text-transform: uppercase; }
 .drawer figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .drawer figure img, .drawer video { width: 100%; display: block; background: var(--panel); }
+.drawer .video-embed { width: 100%; aspect-ratio: 16 / 9; border: 0; display: block; background: var(--panel); }
 .drawer figcaption { color: var(--muted); }
 .drawer audio { width: 100%; }
 .drawer .prose { font-size: 18px; }

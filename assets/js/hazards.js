@@ -23,6 +23,18 @@ export const HAZARDS = {
       { key: 'disruption', short: 'Disruption', text: 'Roads, power and schools cut; markets close; daily-wage income stops.' },
       { key: 'aftermath', short: 'Aftermath', text: 'Relief tied to lost paperwork, debt to rebuild, relocation or giving up riverbank land.' }
     ]
+  },
+  rainfall: {
+    name: 'Extreme rainfall', note: 'Weeks of very heavy rain, even where no flood follows.', colors: ['#DCEEEA', '#2F7F78'],
+    links: [
+      { key: 'downpour', short: 'Days of heavy rain', text: 'Weeks of intense monsoon rain, cloudbursts and strong wind; nothing gets the chance to dry.' },
+      { key: 'damp', short: 'Water gets in', text: 'Roofs leak, walls seep, floors and verandahs stay wet; mud and thatch homes weaken.' },
+      { key: 'cold', short: 'Cold and wet', text: 'Wet clothes and bedding, chill and wind; people and livestock struggle to stay warm.' },
+      { key: 'work', short: 'Work stops', text: 'Farm work, grazing and daily-wage work pause; income stops for days at a time.' },
+      { key: 'cutoff', short: 'Cut off', text: 'Landslides, washed-out paths and swollen streams cut hamlets off from schools, clinics and markets.' },
+      { key: 'spoil', short: 'Stores spoil', text: 'Grain, seed and fodder rot or turn mouldy; firewood stays wet.' },
+      { key: 'illness', short: 'Illness', text: 'Fevers, colds and chest infections; waterborne disease, malaria and dengue; snakebites.' }
+    ]
   }
 };
 

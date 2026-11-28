@@ -34,11 +34,17 @@ export function chainWheel(hazardKey, strategies = [], { selected = null, intera
   }).join('');
   return `<svg class="cw" viewBox="0 0 340 340" role="img" aria-label="${esc(label || `${h.name} chain of events, ${n} steps`)}">
     ${segs}
-    <text x="${C}" y="${C - 4}" text-anchor="middle" class="cw__hz">${esc(h.name)}</text>
+    ${nameLines(h.name).map((t, i, a) => `<text x="${C}" y="${C - 4 - (a.length - 1 - i) * 20}" text-anchor="middle" class="cw__hz">${esc(t)}</text>`).join('')}
     <text x="${C}" y="${C + 16}" text-anchor="middle" class="cw__sub">chain of events ↻</text>
   </svg>`;
 }
 
 export function levelKey() {
   return `<div class="levelkey">${['home', 'neighbourhood', 'region'].map(k => { const l = levelOf(k); return `<span><i style="background:${l.color}"></i>${esc(l.name)}</span>`; }).join('')}</div>`;
+}
+
+// Names longer than one word and ~11 letters go on two lines so they fit inside the ring.
+function nameLines(name) {
+  const w = String(name).split(' ');
+  return name.length > 11 && w.length > 1 ? [w.slice(0, -1).join(' '), w[w.length - 1]] : [name];
 }

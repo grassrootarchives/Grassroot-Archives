@@ -1,5 +1,5 @@
 // Add or edit a story: place it by latitude/longitude (or a click), attach media, publish.
-import { requireAdmin, layout, toast, errMsg, upload, safeName, param } from './common.js';
+import { requireAdmin, layout, toast, errMsg, upload, safeName, param, shrinkPhoto, isShrinkablePhoto, PHOTO_SHRINK_ABOVE, mb } from './common.js';
 import { LEVELS, levelOf, strategiesOf } from '../resilience.js';
 import { HAZARDS, findLink, linkLabel } from '../hazards.js';
 import { chainWheel, levelKey } from '../chainwheel.js';
@@ -11,7 +11,7 @@ import { sampleElevation, snapToLine, zoneFor, inBounds } from '../geo/geom.js';
 
 const THEMES = ['Water Governance', 'Agrarian Change', 'Oral History', 'Ecology'];
 const MAX_UPLOAD_MB = 50;
-const MEDIA = { video: ['Video', 'MP4 or WebM up to 50 MB, or paste a link for longer videos', 'video/*'], audio: ['Sound clip', 'MP3, WAV or M4A, up to 50 MB', 'audio/*'], photo: ['Photograph', 'JPG, PNG or WebP · location is read from the photo if it has one', 'image/*'], document: ['Text file', 'PDF, DOCX or TXT to download; or type the transcript below', '.pdf,.doc,.docx,.txt,.odt'] };
+const MEDIA = { video: ['Video', 'MP4 or WebM up to 50 MB, or paste a YouTube or Vimeo link (best for anything over a minute or two)', 'video/*'], audio: ['Sound clip', 'MP3, WAV or M4A, up to 50 MB', 'audio/*'], photo: ['Photograph', 'JPG, PNG or WebP · large photos are shrunk to about 0.5 MB · location is read from the photo if it has one', 'image/*'], document: ['Text file', 'PDF, DOCX or TXT to download; or type the transcript below', '.pdf,.doc,.docx,.txt,.odt'] };
 const ICON = { video: 'M3 6h12v12H3zM15 10l6-3v10l-6-3', audio: 'M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2', photo: 'M3 7h4l2-3h6l2 3h4v13H3zM12 17a4 4 0 100-8 4 4 0 000 8', document: 'M6 3h9l4 4v14H6zM9 12h7M9 16h7' };
 
 const app = document.getElementById('app');
@@ -187,7 +187,7 @@ function uploadsUI() {
   $('[data-uploads]').innerHTML = [...shown].filter(k => MEDIA[k]).map(k => `<div class="drop" style="flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between">
     <div style="display:flex;flex-direction:column;gap:2px"><strong>${MEDIA[k][0]}</strong><span class="muted">${MEDIA[k][1]}</span></div>
     <label class="btn btn--small" style="position:relative">Upload<input type="file" accept="${MEDIA[k][2]}" data-up="${k}" ${k === 'photo' ? 'multiple' : ''} style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
-    ${k === 'video' ? `<div class="row" style="width:100%"><label class="field"><span class="sr-only">Video link</span><input data-vurl placeholder="…or paste a link to a video file (https://…)"></label><button type="button" class="btn btn--small btn--quiet" data-vadd>Add link</button></div>` : ''}</div>`).join('');
+    ${k === 'video' ? `<div class="row" style="width:100%"><label class="field"><span class="sr-only">Video link</span><input data-vurl placeholder="…or paste a YouTube or Vimeo link (https://…)"></label><button type="button" class="btn btn--small btn--quiet" data-vadd>Add link</button></div>` : ''}</div>`).join('');
   main.querySelectorAll('[data-up]').forEach(inp => inp.addEventListener('change', async () => {
     for (const f of inp.files) await addFile(inp.dataset.up, f);
     inp.value = '';
@@ -195,11 +195,19 @@ function uploadsUI() {
   $('[data-vadd]')?.addEventListener('click', () => { const u = $('[data-vurl]').value.trim(); if (!/^https:\/\//.test(u)) { toast('Paste a full https:// link.', true); return; } media.push({ type: 'video', url: u, caption: '' }); $('[data-vurl]').value = ''; itemsUI(); });
 }
 async function addFile(type, f) {
+  let gps = null;
+  if (type === 'photo') {
+    gps = await readGps(f).catch(() => null);  // read before shrinking: the smaller copy has no location data
+    if (f.size > PHOTO_SHRINK_ABOVE && isShrinkablePhoto(f.type, f.name)) {
+      const small = await shrinkPhoto(f);
+      if (small) { toast(`${f.name}: ${mb(f.size)} → ${mb(small.size)}`); f = new File([small], f.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg', { type: 'image/jpeg' }); }
+    }
+  }
   // Supabase's free plan accepts files up to 50 MB.
   if (f.size > MAX_UPLOAD_MB * 1024 * 1024) { toast(`${f.name} is ${(f.size / 1048576).toFixed(0)} MB; the limit is ${MAX_UPLOAD_MB} MB per file.${type === 'video' ? ' Upload the video to YouTube or Vimeo and paste its link instead, or export a smaller version.' : type === 'audio' ? ' Export it as MP3 to make it smaller.' : ''}`, true); return; }
   const item = { type, url: '', caption: '', name: f.name, uploading: true }; media.push(item); itemsUI();
   try {
-    if (type === 'photo') { const gps = await readGps(f); if (gps && !$('[data-lat]').value) { $('[data-lat]').value = gps[0].toFixed(5); $('[data-lng]').value = gps[1].toFixed(5); derive(); toast('Location read from the photo.'); } }
+    if (type === 'photo') { if (gps && !$('[data-lat]').value) { $('[data-lat]').value = gps[0].toFixed(5); $('[data-lng]').value = gps[1].toFixed(5); derive(); toast('Location read from the photo.'); } }
     item.url = await upload('media', `${$('[data-valley]').value}/${Date.now().toString(36)}-${safeName(f.name)}`, f);
   } catch (e) { media.splice(media.indexOf(item), 1); toast(`Upload failed: ${errMsg(e)}`, true); }
   delete item.uploading; itemsUI();

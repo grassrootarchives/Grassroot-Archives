@@ -142,3 +142,17 @@ a.brand:hover, a.brand:focus-visible { text-decoration: underline; text-underlin
 .admin__main { min-width: 0; }
 .admin__main .table-wrap { max-width: 100%; overflow-x: auto; }
 .notice.is-warn { border-color: #E2B866; background: #FBF1DC; color: #6B4A12; }
+
+/* ---------- media library ---------- */
+.meter { height: 10px; background: var(--panel); border: 1px solid var(--line); }
+.meter > span { display: block; height: 100%; background: var(--river); }
+.meter > span.is-high { background: var(--clay); }
+.media-table td { vertical-align: middle; }
+.media-prev { width: 72px; }
+.media-prev img, .media-kind { width: 64px; height: 48px; object-fit: cover; display: flex; align-items: center; justify-content: center; background: var(--panel); border: 1px solid var(--line); font-size: 11px; letter-spacing: .08em; font-weight: 600; color: var(--muted); }
+.media-kind--video { background: var(--blue); color: var(--ink); font-size: 16px; }
+.media-kind--audio { background: var(--green-2); color: var(--ink); font-size: 16px; }
+.media-name { max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-table .btn[disabled] { opacity: .45; cursor: not-allowed; }
+.media-table .num { white-space: nowrap; }
+[data-kinds] .chip .muted { margin-left: 6px; }

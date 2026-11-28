@@ -1,5 +1,5 @@
 // Pages & design: edit every page as a stack of blocks, add pages, set the site theme.
-import { requireAdmin, layout, toast, errMsg, upload, slugify, safeName, param } from './common.js';
+import { requireAdmin, layout, toast, errMsg, upload, slugify, safeName, param, shrinkPhoto, isShrinkablePhoto, PHOTO_SHRINK_ABOVE } from './common.js';
 import { esc } from '../ui.js';
 import { siteUrl } from '../config.js';
 import { renderBlock, BLOCK_TYPES, FIELD_LABELS } from '../blocks.js';
@@ -130,7 +130,7 @@ function blockSettings() {
   el.querySelector('[data-img]')?.addEventListener('change', async e => {
     const f = e.target.files[0]; if (!f) return;
     if (f.size > 50 * 1024 * 1024) { toast(`${f.name} is larger than the 50 MB upload limit. Export a smaller JPG.`, true); e.target.value = ''; return; }
-    try { toast('Uploading image…'); b.image = await upload('media', `pages/${Date.now().toString(36)}-${safeName(f.name)}`, f); markDirty(); blockSettings(); preview(); toast('Image uploaded.'); } catch (err) { toast(errMsg(err), true); }
+    try { toast('Uploading image…'); let up = f; if (f.size > PHOTO_SHRINK_ABOVE && isShrinkablePhoto(f.type, f.name)) { const small = await shrinkPhoto(f); if (small) up = new File([small], f.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg', { type: 'image/jpeg' }); } b.image = await upload('media', `pages/${Date.now().toString(36)}-${safeName(up.name)}`, up); markDirty(); blockSettings(); preview(); toast('Image uploaded.'); } catch (err) { toast(errMsg(err), true); }
   });
   el.querySelectorAll('[data-mv]').forEach(x => x.addEventListener('click', () => { const to = sel + Number(x.dataset.mv); [blocks[sel], blocks[to]] = [blocks[to], blocks[sel]]; sel = to; markDirty(); draw(); }));
   el.querySelector('[data-dup]').addEventListener('click', () => { blocks.splice(sel + 1, 0, { ...structuredClone(b), id: uid() }); sel++; markDirty(); draw(); });

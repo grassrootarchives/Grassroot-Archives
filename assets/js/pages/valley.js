@@ -195,9 +195,20 @@ function render(site, valley, template, stories, data) {
       const u = esc(dataUrl(m.url)), cap = m.caption ? `<figcaption>${esc(m.caption)}</figcaption>` : '';
       if (m.type === 'photo') return `<figure><img src="${u}" alt="${esc(m.caption || 'Photograph from the interview')}" loading="lazy">${cap}</figure>`;
       if (m.type === 'audio') return `<figure><audio controls preload="none" src="${u}"></audio>${cap}</figure>`;
-      if (m.type === 'video') return `<figure><video controls preload="metadata" src="${u}"></video>${cap}</figure>`;
+      if (m.type === 'video') {
+        const emb = videoEmbed(m.url);
+        if (emb) return `<figure><iframe class="video-embed" src="${esc(emb)}" title="${esc(m.caption || 'Video from the interview')}" loading="lazy" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>${cap}</figure>`;
+        return `<figure><video controls preload="metadata" src="${u}"></video>${cap}</figure>`;
+      }
       return `<p><a href="${u}" target="_blank" rel="noopener">${esc(m.caption || 'Open document')}</a></p>`;
     }).join('');
+  }
+  // YouTube and Vimeo links play in their own player; anything else is treated as a video file.
+  function videoEmbed(url) {
+    const yt = String(url).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/);
+    if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
+    const vm = String(url).match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    return vm ? `https://player.vimeo.com/video/${vm[1]}` : '';
   }
   function openStory(id) {
     const list = stories.filter(matches).length ? stories.filter(matches) : stories;

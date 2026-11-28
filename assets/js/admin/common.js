@@ -6,6 +6,7 @@ import { siteUrl, SITE_VERSION, COPYRIGHT_HOLDER } from '../config.js';
 export const NAV = [
   ['basins', 'River basins', 'admin/index.html'],
   ['stories', 'Stories', 'admin/stories.html'],
+  ['media', 'Media library', 'admin/media.html'],
   ['pages', 'Pages & design', 'admin/pages.html'],
   ['history', 'History', 'admin/history.html'],
   ['settings', 'Settings', 'admin/settings.html']
@@ -70,3 +71,22 @@ export function slugify(s) { return String(s || '').toLowerCase().normalize('NFK
 export function safeName(name) { const m = String(name).match(/^(.*?)(\.[a-z0-9]{1,6})?$/i); return (slugify(m[1]) || 'file') + (m[2] || '').toLowerCase(); }
 
 export function param(k) { return new URLSearchParams(location.search).get(k); }
+
+// ---------- photo shrinking ----------
+// Photos straight from a phone are 4–12 MB. On screen they never need more than about 2000 px,
+// which as a JPEG at quality 0.82 is usually 0.3–0.8 MB. Location data is dropped from the copy;
+// the story keeps its own latitude and longitude.
+export const PHOTO_MAX_PX = 2000, PHOTO_QUALITY = 0.82, PHOTO_SHRINK_ABOVE = 1024 * 1024;
+export const isShrinkablePhoto = (type, name = '') => /^image\/(jpeg|png|webp)$/i.test(type || '') || /\.(jpe?g|png|webp)$/i.test(name);
+// Returns a smaller JPEG Blob, or null if the photo can't be read here or wouldn't get smaller.
+export async function shrinkPhoto(blob) {
+  let bmp;
+  try { bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' }); } catch { return null; }
+  const k = Math.min(1, PHOTO_MAX_PX / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * k)), h = Math.max(1, Math.round(bmp.height * k));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(bmp, 0, 0, w, h); bmp.close?.();
+  const out = await new Promise(r => c.toBlob(r, 'image/jpeg', PHOTO_QUALITY));
+  return out && out.size < blob.size * 0.9 ? out : null;
+}
+export const mb = n => (n / 1048576).toFixed(n < 10 * 1048576 ? 1 : 0) + ' MB';
