@@ -39,11 +39,11 @@ try {
       const v = selected(), list = rows(), many = !v;
       return `
       <div class="wrap" style="display:flex;flex-direction:column;gap:16px">
-        <div role="group" aria-label="River valley" class="archive-valleys">
-          <span class="label">River valley</span>
-          <div class="chips"><button type="button" class="chip" aria-pressed="${!v}" data-valley="all">All valleys <span class="muted">${all.length}</span></button>
-          ${published.map(x => `<button type="button" class="chip" aria-pressed="${v?.id === x.id}" data-valley="${esc(x.slug)}">${esc(x.name)} <span class="muted">${count(x.id)}</span></button>`).join('')}</div>
-        </div>
+        <label class="field archive-valleys"><span class="label">River valley</span>
+          <select data-valley-select>
+            <option value="all" ${!v ? 'selected' : ''}>All valleys (${all.length})</option>
+            ${published.map(x => `<option value="${esc(x.slug)}" ${v?.id === x.id ? 'selected' : ''}>${esc(x.name)} (${count(x.id)})</option>`).join('')}
+          </select></label>
         <div role="group" aria-label="Sort order" style="display:flex;gap:6px;flex-wrap:wrap">
           <button type="button" class="chip" aria-pressed="${down}" data-sort="down">Upstream → downstream</button>
           <button type="button" class="chip" aria-pressed="${!down}" data-sort="up">Downstream → upstream</button>
@@ -68,11 +68,11 @@ try {
       shell(app, site, { current: 'index_template', main: `<div class="blocks" style="gap:32px">${renderBlocks(tpl, { valley: ctxValley, slots: { stories: table() } })}</div>` });
       wireParams(app);
       app.querySelectorAll('[data-sort]').forEach(b => b.addEventListener('click', () => { down = b.dataset.sort === 'down'; draw(`[data-sort="${b.dataset.sort}"]`); }));
-      app.querySelectorAll('[data-valley]').forEach(b => b.addEventListener('click', () => {
-        current = b.dataset.valley;
+      app.querySelector('[data-valley-select]').addEventListener('change', e => {
+        current = e.target.value;
         const url = new URL(location.href); current === 'all' ? url.searchParams.delete('v') : url.searchParams.set('v', current); history.replaceState(null, '', url);
-        draw(`[data-valley="${CSS.escape(current)}"]`);
-      }));
+        draw('[data-valley-select]');
+      });
       if (focusSel) app.querySelector(focusSel)?.focus();
       setMeta(`The Archive · ${v ? v.name + ' · ' : ''}${site.settings.site_name}`);
     };

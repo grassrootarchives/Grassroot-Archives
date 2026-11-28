@@ -391,5 +391,5 @@ table.index td.num { text-align: right; }
 .phases li .card__more { margin-top: 8px; }
 .popup-slot { border: 1.5px dashed var(--line-2); padding: 28px 16px 14px; display: flex; flex-direction: column; gap: 4px; background: var(--surface); }
 .drawer .flash { border-left: 3px solid var(--clay); padding: 4px 0 4px 14px; display: flex; flex-direction: column; gap: 6px; }
-.archive-valleys { display: flex; flex-direction: column; gap: 8px; }
-.archive-valleys .chip .muted { margin-left: 4px; }
+.archive-valleys { display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
+.archive-valleys select { min-height: 44px; padding: 0 12px; border: 1px solid var(--ink); background: var(--surface); color: var(--ink); font: inherit; }
