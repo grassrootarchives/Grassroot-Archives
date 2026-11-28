@@ -367,3 +367,26 @@ table.index td.num { text-align: right; }
 .pfig__svg .lu1 { fill: var(--sage); } .pfig__svg .lu2 { fill: var(--green-2); stroke: var(--sage); } .pfig__svg .lu3 { fill: var(--red-2); stroke: var(--clay); stroke-width: .6; }
 .pfig__svg .b-tap { fill: var(--river); } .pfig__svg .b-bw { fill: var(--sage); } .pfig__svg .b-tk { fill: var(--clay); opacity: .8; } .pfig__svg .b-wk { fill: var(--red); }
 @media (max-width: 640px) { .pmodal__head h2 { font-size: 28px; } .pmodal__body, .pmodal__head, .pmodal__foot { padding-left: 16px; padding-right: 16px; } }
+/* River zones on the illustrated map */
+.gmap__zone { font-family: var(--font-ui); font-size: 15px; font-weight: 600; letter-spacing: .22em; paint-order: stroke; stroke: rgba(255,255,255,.85); stroke-width: 3.5px; stroke-linejoin: round; }
+.gmap__zonekm { font-family: var(--font-ui); font-size: 10px; letter-spacing: .14em; fill: #33424B; paint-order: stroke; stroke: rgba(255,255,255,.85); stroke-width: 3px; stroke-linejoin: round; }
+.gmap__zones, .gmap__zonelabels { pointer-events: none; }
+/* Popup diagrams: transects, phases */
+.pfig__svg .sw { fill: var(--blue); fill-opacity: .55; }
+.pfig__svg .lred { stroke: var(--clay); stroke-width: 1.8; fill: none; }
+.pfig__svg .hh, .pfig__svg .dotred { fill: var(--clay); stroke: #fff; stroke-width: 1; }
+.pfig__svg .pat0 { fill: var(--green-2); stroke: var(--line-2); stroke-width: .6; }
+.pfig__svg .pat1 { fill: #E8CF94; stroke: var(--line-2); stroke-width: .6; }
+.pfig__svg .pat2 { fill: var(--clay); fill-opacity: .8; }
+.pmodal__study { font-size: 16px !important; color: var(--muted); }
+/* Popups written in Pages & design */
+.pmodal__body--text .pmodal__text { max-width: 68ch; }
+.pmodal__media { flex: 1.3 1 360px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pmodal__media figure { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.pmodal__media img, .pmodal__media video { width: 100%; display: block; background: var(--panel); }
+.pmodal__media audio { width: 100%; }
+.pmodal__media .video-embed { width: 100%; aspect-ratio: 16 / 9; border: 0; display: block; }
+.pmodal__media figcaption { font-size: 12px; color: var(--muted); }
+.pmodal__text.prose p { font-family: var(--font-display); font-size: 18px; line-height: 1.55; }
+.phases li .card__more { margin-top: 8px; }
+.popup-slot { border: 1.5px dashed var(--line-2); padding: 28px 16px 14px; display: flex; flex-direction: column; gap: 4px; background: var(--surface); }

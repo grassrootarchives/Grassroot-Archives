@@ -1,4 +1,5 @@
 // The Archive (river-index.html): every story of a valley as a plain table (no map loads).
+import { wireParams } from '../params.js';
 import { boot, shell, setMeta } from './common.js';
 import { getValley, getStories, getPageBy } from '../db.js';
 import { renderBlocks } from '../blocks.js';
@@ -39,6 +40,7 @@ try {
     const tpl = template?.blocks?.length ? template.blocks : [{ id: 'h', type: 'heading', size: 'page', eyebrow: '{valley.name} · Index', title: 'The river, read upstream to downstream' }, { id: 's', type: 'stories' }];
     const draw = () => {
       shell(app, site, { current: 'index_template', valley, main: `<div class="blocks" style="gap:32px">${renderBlocks(tpl, { valley, slots: { stories: table() } })}</div>` });
+      wireParams(app);
       app.querySelectorAll('[data-sort]').forEach(b => b.addEventListener('click', () => { down = b.dataset.sort === 'down'; draw(); app.querySelector(`[data-sort="${b.dataset.sort}"]`).focus(); }));
     };
     draw();

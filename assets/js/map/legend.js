@@ -1,5 +1,6 @@
 // Interactive legend: symbols drawn in the active map style, each with an on/off switch.
 import { STYLES, settlementSymbol, infraSymbol, normaliseType } from './symbols.js';
+import { ZONE_COLORS } from '../geo/zones.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -8,7 +9,7 @@ export function legendKey(t) {
   t = normaliseType(t);
   return ({ kt_weir: 'weir', borewell: 'well', tank: 'reservoir', city: 'town' })[t] || t || 'village';
 }
-const LABELS = { contours: 'Contour lines', decor: 'Trees & fields', river: 'River', boundary: 'Watershed boundary', reservoir: 'Reservoir / tank', village: 'Village', town: 'Town', dam: 'Dam', weir: 'Weir / KT weir', check_dam: 'Check dam', well: 'Well / borewell', jack_well: 'Jack well', pump_house: 'Pump house', canal: 'Canal', pipeline: 'Pipeline', pins: 'Story pins' };
+const LABELS = { zones: 'River zones', contours: 'Contour lines', decor: 'Trees & fields', river: 'River', boundary: 'Watershed boundary', reservoir: 'Reservoir / tank', village: 'Village', town: 'Town', dam: 'Dam', weir: 'Weir / KT weir', check_dam: 'Check dam', well: 'Well / borewell', jack_well: 'Jack well', pump_house: 'Pump house', canal: 'Canal', pipeline: 'Pipeline', pins: 'Story pins' };
 const ORDER = ['dam', 'weir', 'check_dam', 'well', 'jack_well', 'pump_house', 'reservoir', 'canal', 'pipeline'];
 const LINE = 'M-14,3 q7,-7 14,-3 t14,-3';
 
@@ -29,6 +30,7 @@ function icon(style, key, interval) {
     case 'pipeline': g = st.pipeline('M-14,0 h28'); break;
     case 'village': g = `<g transform="scale(${style === 'miniature' ? 0.75 : 0.8})">${settlementSymbol(style, 'village', 0, style === 'miniature' ? -3 : 0, 'Village')}</g>`; break;
     case 'town': g = `<g transform="scale(${style === 'miniature' ? 0.42 : 0.75})">${settlementSymbol(style, 'town', 0, style === 'miniature' ? 0 : 0, 'Town')}</g>`; break;
+    case 'zones': g = ZONE_COLORS.slice(0, 3).map((c, i) => `<rect x="${-15 + i * 10}" y="-6" width="10" height="12" fill="${c}" fill-opacity=".45"/>`).join('') + '<path d="M-5,-7 v14 M5,-7 v14" stroke="#33424B" stroke-dasharray="1.5 2.5" stroke-width="1"/>'; break;
     case 'pins': g = '<circle r="6" fill="#fff" stroke="#C0504A" stroke-width="2"/>'; break;
     default: g = `<g transform="scale(${key === 'dam' && style !== 'contour' ? 0.55 : 0.8})">${infraSymbol(style, key, 0, 0, 0, 1)}</g>`;
   }
@@ -40,7 +42,7 @@ export function legendHTML(style, present, hidden, interval) {
   const st = STYLES[style];
   const row = (key, label) => `<label class="lg__row"><input type="checkbox" data-key="${key}" ${hidden.has(key) ? '' : 'checked'}>${icon(style, key, interval)}<span>${esc(label)}</span></label>`;
   const section = (id, title, keys) => keys.length ? `<fieldset class="lg__sec"><legend><label class="lg__head"><input type="checkbox" data-sec="${id}" ${keys.every(k => hidden.has(k)) ? '' : 'checked'}><span>${esc(title)}</span></label></legend>${keys.map(k => row(k, k === 'contours' && style === 'contour' ? `Contours, ${interval} m (bold every ${interval * 5} m)` : LABELS[k])).join('')}</fieldset>` : '';
-  const terrain = [st.lines ? 'contours' : null, st.decor ? 'decor' : null, 'river', present.boundary && st.boundary ? 'boundary' : null].filter(Boolean);
+  const terrain = [st.lines ? 'contours' : null, st.decor ? 'decor' : null, 'river', present.boundary && st.boundary ? 'boundary' : null, present.zones ? 'zones' : null].filter(Boolean);
   const set = ['village', 'town'].filter(k => present.settlements.has(k));
   const inf = ORDER.filter(k => present.infra.has(k));
   return `<div class="lg lg--${style}" role="group" aria-label="Legend: switch map features on and off">
@@ -52,18 +54,19 @@ export function legendHTML(style, present, hidden, interval) {
   </div>`;
 }
 
-export function presentKeys(settlements, infra, boundary) {
+export function presentKeys(settlements, infra, boundary, zones) {
   return {
     settlements: new Set((settlements?.features || []).map(f => legendKey(f.properties?.type || 'village'))),
     infra: new Set((infra?.features || []).map(f => legendKey(f.properties?.type))),
-    boundary: !!boundary
+    boundary: !!boundary,
+    zones: !!zones?.length
   };
 }
 
 // Wires a legend container to a map; returns a function that redraws it (after a style change).
 export function mountLegend(el, { map, style, data, interval }) {
   const hidden = new Set();
-  const present = presentKeys(data.settlements, data.infra, data.boundary);
+  const present = presentKeys(data.settlements, data.infra, data.boundary, data.zones);
   const draw = s => {
     style = s || style;
     el.innerHTML = legendHTML(style, present, hidden, interval);

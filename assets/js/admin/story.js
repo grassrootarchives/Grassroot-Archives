@@ -148,7 +148,7 @@ async function loadValley() {
   el.innerHTML = '<div class="empty">Loading map…</div>';
   data = await loadValleyData(valley);
   const { data: others } = await sb.from('stories').select('id,number,place,lat,lng').eq('valley_id', valley.id);
-  map = createMap(el, { ...data, style: valley.map_style, interval: valley.contour_interval, stories: (others || []).filter(o => o.id !== story?.id), layers: { settlements: true, infra: true, pins: true },
+  map = createMap(el, { ...data, zones: valley.zones, style: valley.map_style, interval: valley.contour_interval, stories: (others || []).filter(o => o.id !== story?.id), layers: { settlements: true, infra: true, pins: true },
     onMapClick: ({ lon, lat }) => { $('[data-lat]').value = lat.toFixed(5); $('[data-lng]').value = lon.toFixed(5); derive(); },
     // the other stories' pins: open that story in a new tab, so this form is not lost
     onPinClick: o => { window.open(siteUrl('admin/story.html?id=' + o.id), '_blank', 'noopener'); toast(`Opened story ${o.number ?? ''} · ${o.place} in a new tab.`); } });

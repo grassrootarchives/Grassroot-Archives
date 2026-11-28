@@ -3,6 +3,7 @@ import { requireAdmin, layout, toast, errMsg, upload, slugify, safeName, param, 
 import { esc } from '../ui.js';
 import { siteUrl } from '../config.js';
 import { renderBlock, BLOCK_TYPES, FIELD_LABELS } from '../blocks.js';
+import { registerPopups, wireParams } from '../params.js';
 import { hrefFor } from '../ui.js';
 
 const app = document.getElementById('app');
@@ -19,7 +20,7 @@ const FONTS = { plex: ['Newsreader', 'with IBM Plex Mono', "'Newsreader', Georgi
 const KIND_LABEL = { home: 'Home', about: 'About', valley_template: 'Valley map page (all valleys)', index_template: 'The Archive (all valleys)' };
 const REQUIRED = { valley_template: 'map', index_template: 'stories' };
 const uid = () => 'b' + Math.random().toString(36).slice(2, 9);
-const NEW = { hero: { title: 'New heading', body: 'Short introduction.', image: 'assets/img/hero.jpg' }, heading: { title: 'New section heading' }, text: { body: 'New paragraph. Edit it on the right.' }, section: { label: 'Section label', body: 'Text for this section.' }, cards: { title: '', items: ['Card one | | Short text.', 'Card two | | Short text.', 'Card three | | Short text.'] }, phases: { title: 'Phases', items: ['Step one | Phase I | What happens.', 'Step two | Phase II | What happens.'] }, chips: { title: 'Tags', items: ['Tag one', 'Tag two'] }, quote: { body: 'A quote from an interview.', title: 'Speaker', bg: 'green' }, image: { image: '', body: 'Caption' }, button: { title: 'Button label →', href: 'valley.html' }, valleys: { title: 'Explore a valley', body: '' }, contact: { eyebrow: 'Contact', body: 'Get in touch.', email: '', title: 'Write to us' } };
+const NEW = { hero: { title: 'New heading', body: 'Short introduction.', image: 'assets/img/hero.jpg' }, heading: { title: 'New section heading' }, text: { body: 'New paragraph. Edit it on the right.' }, section: { label: 'Section label', body: 'Text for this section.' }, cards: { title: '', items: ['Card one | | Short text.', 'Card two | | Short text.', 'Card three | | Short text.'] }, phases: { title: 'Phases', items: ['Step one | Phase I | What happens.', 'Step two | Phase II | What happens.'] }, chips: { title: 'Tags', items: ['Tag one', 'Tag two'] }, quote: { body: 'A quote from an interview.', title: 'Speaker', bg: 'green' }, image: { image: '', body: 'Caption' }, button: { title: 'Button label →', href: 'valley.html' }, valleys: { title: 'Explore a valley', body: '' }, contact: { eyebrow: 'Contact', body: 'Get in touch.', email: '', title: 'Write to us' }, popup: { title: 'Popup heading', eyebrow: '', opens_from: '', body: 'Text for the popup. Start a line with - for a bullet point.', media: [] } };
 
 const main = layout(app, 'pages', user, `
   <div class="admin__head"><div><span class="eyebrow">Pages &amp; design</span><h1>Pages &amp; design</h1></div>
@@ -74,9 +75,11 @@ function outline() {
 function preview() {
   const fr = $('[data-preview]');
   fr.dataset.palette = theme.palette; fr.dataset.font = theme.font;
-  const ctx = { valleys, valley: { name: '[Valley name]', region: '[Region]', intro: '[Valley introduction, written when the basin is created.]' }, slots: { map: '<div class="slot">Valley map, filters, legend and profile<br><span style="font-size:12px">Filled with each valley\'s own map</span></div>', stories: '<div class="slot">Story table for the valley</div>' } };
+  registerPopups(blocks);
+  const ctx = { preview: true, valleys, valley: { name: '[Valley name]', region: '[Region]', intro: '[Valley introduction, written when the basin is created.]' }, slots: { map: '<div class="slot">Valley map, filters, legend and profile<br><span style="font-size:12px">Filled with each valley\'s own map</span></div>', stories: '<div class="slot">Story table for the valley</div>' } };
   fr.innerHTML = `<div class="blocks">${blocks.map((b, i) => `<div class="pblock${i === sel ? ' is-selected' : ''}" data-i="${i}"><span class="pblock__tag">⋮⋮ ${esc(BLOCK_TYPES[b.type]?.name || b.type)}</span>${renderBlock(b, ctx) || `<div class="slot">${esc(BLOCK_TYPES[b.type]?.name)}: empty</div>`}</div>`).join('') || '<div class="slot">This page is empty. Add a block from the left.</div>'}</div>`;
   fr.querySelectorAll('a').forEach(a => a.addEventListener('click', e => e.preventDefault()));
+  if (!fr.dataset.popups) { fr.dataset.popups = '1'; wireParams(fr); }
   fr.querySelectorAll('.pblock').forEach(el => el.addEventListener('click', () => { sel = Number(el.dataset.i); outline(); blockSettings(); fr.querySelectorAll('.pblock').forEach(x => x.classList.toggle('is-selected', x === el)); }));
 }
 function pageSettings() {
@@ -116,6 +119,8 @@ function blockSettings() {
     if (f === 'items') return `<label class="field"><span>${FIELD_LABELS[f]}</span><textarea data-f="items" rows="6">${esc((v || []).join('\n'))}</textarea>${['cards', 'phases'].includes(b.type) ? '<span class="hint">Write “Title | small label | text” on each line.</span>' : ''}</label>`;
     if (f === 'image') return `<label class="field"><span>${FIELD_LABELS[f]}</span><input data-f="image" value="${esc(v || '')}"></label><label class="btn btn--small btn--quiet" style="position:relative;align-self:flex-start">Upload image<input type="file" accept="image/*" data-img style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
       <label class="field"><span>Image description (for screen readers)</span><input data-f="alt" value="${esc(b.alt || '')}"></label>`;
+    if (f === 'opens_from') return `<label class="field"><span>${FIELD_LABELS[f]}</span><input data-f="opens_from" value="${esc(v || '')}" placeholder="${esc(b.title || 'e.g. Transects, Households')}"><span class="hint">The cards, tags or phases on this page that open this popup, by their titles, separated by commas. Left empty, an item with the same title as this popup opens it. To open it from text or a button, link to <code>#popup-${esc(b.id)}</code>, for example [read more](#popup-${esc(b.id)}).</span></label>`;
+    if (f === 'media') return mediaEditor(b);
     const long = ['body'].includes(f) || (f === 'title' && b.type === 'hero');
     return `<label class="field"><span>${FIELD_LABELS[f] || f}</span>${long ? `<textarea data-f="${f}" rows="${f === 'body' ? 5 : 2}">${esc(v || '')}</textarea>` : `<input data-f="${f}" value="${esc(v || '')}">`}</label>`;
   };
@@ -124,6 +129,7 @@ function blockSettings() {
       <button type="button" class="btn btn--small btn--quiet" data-dup aria-label="Duplicate block" ${required ? 'disabled' : ''}>⧉</button><button type="button" class="btn btn--small btn--danger" data-rm aria-label="Delete block" ${required ? 'disabled' : ''}>✕</button></div>
     ${required ? '<span class="muted" style="font-size:12px">This block holds the page’s working part and cannot be removed.</span>' : ''}
     ${t.fields.map(field).join('')}${['heading', 'text', 'section', 'hero'].includes(b.type) && REQUIRED[current.kind] ? '<span class="hint">Use {valley.name}, {valley.region} or {valley.intro} to show each valley’s own details.</span>' : ''}`;
+  if (b.type === 'popup') wireMedia(el, b);
   el.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener('input', () => {
     const k = inp.dataset.f; b[k] = k === 'items' ? inp.value.split('\n').map(x => x.trim()).filter(Boolean) : inp.value; markDirty(); preview();
   }));
@@ -135,6 +141,47 @@ function blockSettings() {
   el.querySelectorAll('[data-mv]').forEach(x => x.addEventListener('click', () => { const to = sel + Number(x.dataset.mv); [blocks[sel], blocks[to]] = [blocks[to], blocks[sel]]; sel = to; markDirty(); draw(); }));
   el.querySelector('[data-dup]').addEventListener('click', () => { blocks.splice(sel + 1, 0, { ...structuredClone(b), id: uid() }); sel++; markDirty(); draw(); });
   el.querySelector('[data-rm]').addEventListener('click', () => { blocks.splice(sel, 1); sel = Math.max(0, sel - 1); markDirty(); draw(); });
+}
+// ---------- popup media: photos, videos and sound clips ----------
+const MKIND = { photo: ['Photo', 'image/*'], video: ['Video', 'video/*'], audio: ['Sound', 'audio/*'] };
+function mediaEditor(b) {
+  const list = b.media || [];
+  return `<div class="field"><span>${FIELD_LABELS.media}</span>
+    <div class="pmedia">${list.map((m, i) => `<div class="media-item">
+      ${m.type === 'photo' && m.url ? `<img src="${esc(/^https?:/.test(m.url) ? m.url : siteUrl(m.url))}" alt="">` : `<span class="label" style="width:64px">${esc(MKIND[m.type]?.[0] || m.type)}</span>`}
+      <div class="grow"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(m.name || String(m.url).split('/').pop().split('?')[0])}${m.uploading ? ' · uploading…' : ''}</div>
+        <label class="field"><span class="sr-only">Caption</span><input data-mcap="${i}" value="${esc(m.caption || '')}" placeholder="Caption" style="min-height:32px;padding:4px 8px"></label></div>
+      <button type="button" class="btn btn--small btn--quiet" data-mup="${i}" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
+      <button type="button" class="btn btn--small btn--quiet" data-mrm="${i}" aria-label="Remove">✕</button></div>`).join('') || '<span class="muted" style="font-size:12px">No media yet.</span>'}</div>
+    <div class="row" style="gap:6px">${Object.entries(MKIND).map(([k, [l, acc]]) => `<label class="btn btn--small" style="position:relative">+ ${l}<input type="file" accept="${acc}" data-mfile="${k}" ${k === 'photo' ? 'multiple' : ''} style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>`).join('')}</div>
+    <div class="row" style="gap:6px;flex-wrap:nowrap"><label class="field grow"><span class="sr-only">Video or sound link</span><input data-mlink placeholder="…or paste a YouTube, Vimeo or file link (https://…)"></label><button type="button" class="btn btn--small btn--quiet" data-madd>Add link</button></div>
+    <span class="hint">Photos over 1 MB are shrunk before upload. Videos and sound up to 50 MB; for longer videos paste a YouTube or Vimeo link.</span></div>`;
+}
+function wireMedia(el, b) {
+  b.media ||= [];
+  const redraw = () => { markDirty(); blockSettings(); preview(); };
+  el.querySelectorAll('[data-mcap]').forEach(x => x.addEventListener('input', () => { b.media[x.dataset.mcap].caption = x.value; markDirty(); }));
+  el.querySelectorAll('[data-mrm]').forEach(x => x.addEventListener('click', () => { b.media.splice(Number(x.dataset.mrm), 1); redraw(); }));
+  el.querySelectorAll('[data-mup]').forEach(x => x.addEventListener('click', () => { const i = Number(x.dataset.mup); [b.media[i - 1], b.media[i]] = [b.media[i], b.media[i - 1]]; redraw(); }));
+  el.querySelector('[data-madd]')?.addEventListener('click', () => {
+    const u = el.querySelector('[data-mlink]').value.trim();
+    if (!/^https:\/\//.test(u)) { toast('Paste a full https:// link.', true); return; }
+    const type = /\.(mp3|wav|m4a|ogg|aac)(\?|$)/i.test(u) ? 'audio' : /\.(jpe?g|png|webp|gif)(\?|$)/i.test(u) ? 'photo' : 'video';
+    b.media.push({ type, url: u, caption: '' }); redraw();
+  });
+  el.querySelectorAll('[data-mfile]').forEach(inp => inp.addEventListener('change', async () => {
+    const type = inp.dataset.mfile;
+    for (let f of [...inp.files]) {
+      if (type === 'photo' && f.size > PHOTO_SHRINK_ABOVE && isShrinkablePhoto(f.type, f.name)) {
+        const small = await shrinkPhoto(f); if (small) f = new File([small], f.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg', { type: 'image/jpeg' });
+      }
+      if (f.size > 50 * 1024 * 1024) { toast(`${f.name} is larger than the 50 MB limit.${type === 'video' ? ' Put it on YouTube or Vimeo and paste the link instead.' : ''}`, true); continue; }
+      const item = { type, url: '', caption: '', name: f.name, uploading: true }; b.media.push(item); blockSettings();
+      try { item.url = await upload('media', `pages/${Date.now().toString(36)}-${safeName(f.name)}`, f); delete item.uploading; delete item.name; }
+      catch (err) { b.media.splice(b.media.indexOf(item), 1); toast(`Upload failed: ${errMsg(err)}`, true); }
+      redraw();
+    }
+  }));
 }
 function themePanel() {
   $('[data-theme]').innerHTML = `<h2>Site theme · all pages</h2><span>Colours</span>

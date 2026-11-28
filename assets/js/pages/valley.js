@@ -1,8 +1,9 @@
 // Valley map page: map, filters, telemetry, layers, legend, profile and the story drawer.
+import { wireParams } from '../params.js';
 import { boot, shell, setMeta, drawThumbs } from './common.js';
 import { getValley, getStories, getPageBy, loadValleyData, dataUrl, storyCounts } from '../db.js';
 import { renderBlocks } from '../blocks.js';
-import { esc, md, errorBox } from '../ui.js';
+import { esc, md, errorBox, videoEmbed } from '../ui.js';
 import { siteUrl } from '../config.js';
 import { createMap } from '../map/map.js';
 import { STYLES } from '../map/symbols.js';
@@ -29,6 +30,7 @@ try {
     shell(app, site, { current: 'valley_template', main: `<div class="wrap" style="padding:96px 32px"><h1 class="display" style="font-size:44px">No valley to show yet</h1><p class="muted">Valleys appear here once they are published from the admin.</p></div>` });
   } else {
     const [template, stories, data] = await Promise.all([getPageBy('kind', 'valley_template'), getStories(valley.id), loadValleyData(valley)]);
+    data.zones = valley.zones || [];
     stories.forEach((s, i) => { if (s.number == null) s.number = i + 1; });
     render(site, valley, template, stories, data);
   }
@@ -81,6 +83,7 @@ function render(site, valley, template, stories, data) {
     current: 'valley_template', valley,
     main: `<div class="blocks" style="gap:24px;padding-bottom:0">${renderBlocks(tpl, { valley, valleys: site.valleys, slots: { map: slot } })}</div><div data-drawer></div>`
   });
+  wireParams(app);
   setMeta(`${valley.name} · ${site.settings.site_name}`, valley.intro);
 
   const state = { zone: 'All', theme: 'All', open: null, hover: null };
@@ -113,7 +116,7 @@ function render(site, valley, template, stories, data) {
     state[group.dataset.filter] = b.dataset.value;
     group.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
     const dim = stories.filter(s => !matches(s)).map(s => s.id);
-    [map, real].forEach(m => m?.setDim(dim)); drawProfile();
+    [map, real].forEach(m => { m?.setDim(dim); if (group.dataset.filter === 'zone') m?.setZone?.(state.zone); }); drawProfile();
   }));
   // Legend with on/off switches.
   let view = map, real = null;
@@ -202,13 +205,6 @@ function render(site, valley, template, stories, data) {
       }
       return `<p><a href="${u}" target="_blank" rel="noopener">${esc(m.caption || 'Open document')}</a></p>`;
     }).join('');
-  }
-  // YouTube and Vimeo links play in their own player; anything else is treated as a video file.
-  function videoEmbed(url) {
-    const yt = String(url).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/);
-    if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
-    const vm = String(url).match(/vimeo\.com\/(?:video\/)?(\d+)/);
-    return vm ? `https://player.vimeo.com/video/${vm[1]}` : '';
   }
   function openStory(id) {
     const list = stories.filter(matches).length ? stories.filter(matches) : stories;

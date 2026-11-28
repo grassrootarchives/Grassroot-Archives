@@ -156,3 +156,4 @@ a.brand:hover, a.brand:focus-visible { text-decoration: underline; text-underlin
 .media-table .btn[disabled] { opacity: .45; cursor: not-allowed; }
 .media-table .num { white-space: nowrap; }
 [data-kinds] .chip .muted { margin-left: 6px; }
+.pmedia { display: flex; flex-direction: column; gap: 6px; }

@@ -1,4 +1,5 @@
 // Create or edit a river basin (valley): map data → details → style → layers → save/publish.
+import { DEFAULT_ZONES } from '../geo/zones.js';
 import { requireAdmin, layout, toast, errMsg, uploadJSON, slugify, param } from './common.js';
 import { loadValleyData } from '../db.js';
 import { esc } from '../ui.js';
@@ -28,7 +29,8 @@ if (valley?.data?.grid) {
   try { Object.assign(S, await loadValleyData(valley)); S.info = { source: 'Saved map', crs: valley.crs || 'EPSG:4326', cellSize: '—', original: '' }; }
   catch (e) { toast('Could not load the saved map files: ' + errMsg(e), true); }
 }
-const v = valley || { name: '', slug: '', region: '', intro: '', source_credit: '', layers_credit: '', contour_interval: 20, zones: [{ name: 'Headwaters', from: 0, to: 0.19 }, { name: 'Mid-Valley', from: 0.19, to: 0.62 }, { name: 'Floodplain', from: 0.62, to: 0.88 }, { name: 'Command Area', from: 0.88, to: 1 }], show_in_menu: true, menu_order: 100, status: 'draft' };
+const v = valley || { name: '', slug: '', region: '', intro: '', source_credit: '', layers_credit: '', contour_interval: 20, zones: structuredClone(DEFAULT_ZONES), show_in_menu: true, menu_order: 100, status: 'draft' };
+let zones = (v.zones || []).map(z => ({ ...z }));
 
 const main = layout(app, 'basins', user, `
   <a href="${esc(siteUrl('admin/index.html'))}" class="muted">← River basins</a>
@@ -77,6 +79,7 @@ const main = layout(app, 'basins', user, `
       <label class="check" style="min-height:42px"><input type="checkbox" data-menu ${v.show_in_menu ? 'checked' : ''}> Show in the valley menu</label>
     </div>
     <h3>Zones along the river</h3>
+    <span class="muted">Each zone shows on the map as its own area: every place takes the zone of its nearest stretch of river. The study method uses three: headwater zone, mid section and tail-water zone.</span>
     <div data-zones style="display:flex;flex-direction:column;gap:8px"></div>
     <div><button type="button" class="btn btn--small btn--quiet" data-addzone>+ Add zone</button></div>
   </section>
@@ -176,7 +179,7 @@ let previewMap = null;
 function preview() {
   if (!S.grid) return;
   previewMap?.destroy?.();
-  previewMap = createMap($('[data-preview]'), { grid: S.grid, river: S.river, boundary: S.boundary, settlements: S.settlements, infra: S.infra, style: S.style, interval: Number($('[data-interval]').value), label: 'Preview of the river basin map' });
+  previewMap = createMap($('[data-preview]'), { grid: S.grid, river: S.river, boundary: S.boundary, zones, settlements: S.settlements, infra: S.infra, style: S.style, interval: Number($('[data-interval]').value), label: 'Preview of the river basin map' });
 }
 function thumbs() {
   if (!S.grid) return;
@@ -190,7 +193,6 @@ nameI.addEventListener('input', () => { if (slugI.dataset.auto) { slugI.value = 
 const fromLink = s => { const m = String(s).match(/[?&]v=([^&#\s]+)/); return m ? decodeURIComponent(m[1]) : s; };
 slugI.addEventListener('input', () => { delete slugI.dataset.auto; slugI.value = slugify(fromLink(slugI.value)); $('[data-slugshow]').textContent = slugI.value; });
 $('[data-interval]').addEventListener('change', () => { preview(); });
-let zones = (v.zones || []).map(z => ({ ...z }));
 function zonesUI() {
   const km = riverKm();
   const unit = km ? 'km' : '% of river';
@@ -205,10 +207,11 @@ function zonesUI() {
     row.querySelector('[data-zn]').addEventListener('input', e => zones[i].name = e.target.value);
     row.querySelector('[data-zf]').addEventListener('input', e => zones[i].from = Math.max(0, Math.min(1, back(e.target.value))));
     row.querySelector('[data-zt]').addEventListener('input', e => zones[i].to = Math.max(0, Math.min(1, back(e.target.value))));
-    row.querySelector('[data-zdel]').addEventListener('click', () => { zones.splice(i, 1); zonesUI(); });
+    row.querySelector('[data-zdel]').addEventListener('click', () => { zones.splice(i, 1); zonesUI(); if (S.grid) preview(); });
+    row.querySelectorAll('input').forEach(x => x.addEventListener('change', () => { if (S.grid) preview(); }));
   });
 }
-$('[data-addzone]').addEventListener('click', () => { zones.push({ name: 'New zone', from: zones.at(-1)?.to ?? 0, to: 1 }); zonesUI(); });
+$('[data-addzone]').addEventListener('click', () => { zones.push({ name: 'New zone', from: zones.at(-1)?.to ?? 0, to: 1 }); zonesUI(); if (S.grid) preview(); });
 zonesUI();
 
 // ---------- 03 style ----------

@@ -9,6 +9,7 @@ export const ICON_SCALE = 0.7;
 const shrink = (svg, x, y, k = ICON_SCALE) => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${k}) translate(${(-x).toFixed(1)} ${(-y).toFixed(1)})">${svg}</g>`;
 import { legendKey } from './legend.js';
 
+import { zoneField, ZONE_COLORS } from '../geo/zones.js';
 const NS = 'http://www.w3.org/2000/svg';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -25,7 +26,8 @@ export function createMap(container, opts) {
     dim: new Set(),
     active: null,
     interval: opts.interval || 20,
-    hidden: new Set(opts.hidden || [])
+    hidden: new Set(opts.hidden || []),
+    zone: null
   };
   const off = k => state.hidden.has(k);
   const grid = opts.grid;
@@ -61,6 +63,40 @@ export function createMap(container, opts) {
 
   function features(fc) { return (fc?.features || []).filter(f => f && f.geometry); }
 
+  // River zones: each place takes the zone of its nearest point on the river.
+  const zones = opts.zones?.length && riverCoords ? opts.zones : null;
+  let zf = null; const zcache = new Map();
+  const zoneData = () => { if (zones && !zf) zf = zoneField({ bounds, river: riverCoords, zones, boundary: opts.boundary }); return zf; };
+  const zoneRings = t => {
+    if (!zcache.has(t)) {
+      const f = zoneData(), cp = (c, r) => [(c + 0.5) / f.w * VW, (r + 0.5) / f.h * VH];
+      zcache.set(t, isolines(f, t).map(r => 'M' + simplify(r, 0.6).map(([c, rr]) => cp(c, rr).map(v => v.toFixed(1)).join(',')).join('L') + 'Z').join(''));
+    }
+    return zcache.get(t);
+  };
+  function zonesLayer(st) {
+    const f = zoneData(); if (!f) return '';
+    const id = 'zc' + Math.random().toString(36).slice(2, 7), focus = state.zone;
+    const rings = opts.boundary ? (opts.boundary.geometry ? opts.boundary.geometry.coordinates : opts.boundary) : null;
+    const op = st.zoneOpacity ?? 0.16;
+    const out = [`<defs><clipPath id="${id}">${rings ? `<path d="${polyPath(rings)}"/>` : `<rect width="${VW}" height="${VH}"/>`}</clipPath></defs><g class="gmap__zones" clip-path="url(#${id})">`];
+    zones.forEach((z, i) => {
+      const on = !focus || focus === z.name;
+      out.push(`<path d="${zoneRings(i - 0.5)}" fill="${ZONE_COLORS[i % ZONE_COLORS.length]}" fill-opacity="${on ? (focus ? op * 1.8 : op) : op * 0.25}" fill-rule="evenodd"/>`);
+    });
+    for (let i = 0; i < zones.length - 1; i++) out.push(`<path d="${zoneRings(i + 0.5)}" fill="none" stroke="${st.zoneLine || '#33424B'}" stroke-opacity=".55" stroke-width="1.6" stroke-dasharray="2 5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`);
+    out.push('</g>');
+    return out.join('');
+  }
+  function zoneLabels(st) {
+    const f = zoneData(); if (!f) return '';
+    return `<g class="gmap__zonelabels" aria-hidden="true">${f.labels.map(l => {
+      const half = l.name.length * 6.6 + 10, [x0, y0] = px(l.lon, l.lat), dim = state.zone && state.zone !== l.name;
+      const x = Math.min(VW - half, Math.max(half, x0)), y = Math.min(VH - 30, Math.max(24, y0));  // keep the whole label on the map
+      return `<g opacity="${dim ? 0.35 : 1}"><text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" class="gmap__zone" fill="${ZONE_COLORS[l.i % ZONE_COLORS.length]}">${esc(l.name.toUpperCase())}</text><text x="${x.toFixed(1)}" y="${(y + 15).toFixed(1)}" text-anchor="middle" class="gmap__zonekm">KM ${Math.round(l.kmFrom)}–${Math.round(l.kmTo)}</text></g>`;
+    }).join('')}</g>`;
+  }
+
   // ---------- drawing ----------
   function draw() {
     const st = STYLES[state.style];
@@ -95,6 +131,7 @@ export function createMap(container, opts) {
     }
     // Miniature extras: fields and trees.
     if (st.decor && riverCoords && !off('decor')) parts.push(decor(st));
+    if (zones && !off('zones')) parts.push(zonesLayer(st));
     // Watershed.
     if (opts.boundary && st.boundary && !off('boundary')) {
       const rings = opts.boundary.geometry ? opts.boundary.geometry.coordinates : opts.boundary;
@@ -157,6 +194,7 @@ export function createMap(container, opts) {
     }
     // Pins occupy space too.
     if (state.layers.pins && !off('pins')) for (const s of state.stories) { const [x, y] = px(s.lng, s.lat); placed.push([x - 8, y - 8, x + 8 + 8 * String(s.place || '').length, y + 8]); }
+    if (zones && !off('zones')) parts.push(zoneLabels(st));
     parts.push(`<g class="gmap__symbols">${sym.join('')}</g>`);
     parts.push(`<g class="gmap__labels">${placeLabels(labels, placed, state.style)}</g>`);
     svg.innerHTML = parts.join('');
@@ -303,6 +341,7 @@ export function createMap(container, opts) {
     setStories(list) { state.stories = list; draw(); },
     setDim(ids) { state.dim = new Set(ids); drawPins(); },
     setActive(id) { state.active = id; drawPins(); },
+    setZone(name) { state.zone = name && name !== 'All' ? name : null; draw(); },
     setMarker(lon, lat) {
       svg.querySelector('[data-marker]')?.remove();
       if (lon == null) return;

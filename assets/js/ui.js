@@ -108,3 +108,11 @@ export function errorBox(err) {
   console.error(err);
   return `<div class="wrap" style="padding:64px 32px"><div class="empty">Something went wrong loading this page. ${esc(err?.message || '')}</div></div>`;
 }
+
+// YouTube and Vimeo links play in their own player; anything else is treated as a video file.
+export function videoEmbed(url) {
+  const yt = String(url).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/);
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
+  const vm = String(url).match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  return vm ? `https://player.vimeo.com/video/${vm[1]}` : '';
+}
