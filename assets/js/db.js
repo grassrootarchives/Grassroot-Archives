@@ -49,6 +49,13 @@ export async function getStories(valleyId) {
   return check(await sb.from('stories').select('*').eq('valley_id', valleyId).order('river_km', { ascending: true, nullsFirst: false }).order('number'));
 }
 
+// Published stories of several valleys at once (The Archive's "All valleys" view).
+export async function getPublishedStories(valleyIds) {
+  if (!valleyIds?.length) return [];
+  const sb = await supabase();
+  return check(await sb.from('stories').select('*').in('valley_id', valleyIds).eq('status', 'published').order('river_km', { ascending: true, nullsFirst: false }).order('number'));
+}
+
 // Data files may be absolute URLs (Supabase Storage) or paths inside this site (the demo valley).
 export function dataUrl(u) { return /^https?:/i.test(u) ? u : siteUrl(u); }
 

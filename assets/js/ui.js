@@ -44,19 +44,40 @@ export function hrefFor(page, firstValley) {
     case 'home': return siteUrl('index.html');
     case 'about': return siteUrl('about.html');
     case 'valley_template': return siteUrl('valley.html');
-    case 'index_template': return siteUrl('river-index.html' + (firstValley ? '?v=' + encodeURIComponent(firstValley.slug) : ''));
+    case 'index_template': return siteUrl('river-index.html');  // opens on all valleys
     default: return siteUrl('page.html?p=' + encodeURIComponent(page.slug));
   }
+}
+
+// ---------- site menu ----------
+// settings.menu (edited in Pages & design) is a list of { label, page: slug } or { label, href }, each with show.
+// Without it, the menu is built from the pages' "Show in site menu" setting.
+export const defaultMenuLabel = p => p.kind === 'valley_template' ? 'River valleys' : p.kind === 'index_template' ? 'The Archive' : p.title;
+export function menuModel(settings, pages) {
+  if (Array.isArray(settings?.menu)) return settings.menu;
+  return (pages || []).slice().sort((a, b) => (a.menu_order ?? 0) - (b.menu_order ?? 0)).map(p => ({ page: p.slug, label: '', show: !!p.show_in_menu }));
+}
+export function menuHref(h) {
+  const s = String(h || '').trim();
+  if (/^(https?:|mailto:|tel:|#)/i.test(s)) return s;
+  return siteUrl(s.replace(/^\/+/, '') || 'index.html');
+}
+export function menuLinks(settings, pages, first) {
+  return menuModel(settings, pages).filter(i => i.show !== false).map(i => {
+    if (i.page) {
+      const p = (pages || []).find(x => x.slug === i.page);
+      if (!p || p.status !== 'published') return null;
+      return { label: (i.label || '').trim() || defaultMenuLabel(p), href: hrefFor(p, first), kind: p.kind, slug: p.slug };
+    }
+    if (i.href) return { label: (i.label || '').trim() || i.href, href: menuHref(i.href), external: /^https?:/i.test(i.href) };
+    return null;
+  }).filter(Boolean);
 }
 
 export function header({ pages, valleys, current, over = false, valley = null, settings }) {
   const published = (valleys || []).filter(v => v.status === 'published');
   const first = valley || published[0] || null;
-  const items = (pages || []).filter(p => p.show_in_menu && p.status === 'published');
-  const nav = items.map(p => {
-    const label = p.kind === 'valley_template' ? 'River valleys' : p.kind === 'index_template' ? 'The Archive' : p.title;
-    return `<a href="${esc(hrefFor(p, first))}"${p.kind === current || p.slug === current ? ' aria-current="page"' : ''}>${esc(label)}</a>`;
-  }).join('');
+  const nav = menuLinks(settings, pages, first).map(l => `<a href="${esc(l.href)}"${l.external ? ' target="_blank" rel="noopener"' : ''}${l.kind && (l.kind === current || l.slug === current) ? ' aria-current="page"' : ''}>${esc(l.label)}${l.external ? '<span class="sr-only"> (opens in a new tab)</span>' : ''}</a>`).join('');
   const switcher = valley ? `
     <div class="valley-switch">
       <button type="button" aria-expanded="false" aria-haspopup="true" data-valley-toggle><span class="muted">Valley</span><strong>${esc(valley.name)}</strong>
@@ -78,7 +99,8 @@ export function header({ pages, valleys, current, over = false, valley = null, s
 }
 
 export function footer(settings, pages) {
-  const custom = (pages || []).filter(p => p.kind === 'custom' && p.status === 'published' && !p.show_in_menu);
+  const inMenu = new Set(menuModel(settings, pages).filter(i => i.page && i.show !== false).map(i => i.page));
+  const custom = (pages || []).filter(p => p.kind === 'custom' && p.status === 'published' && !inMenu.has(p.slug));
   const email = settings?.contact_email || CONTACT_EMAIL;
   return `<footer class="site-footer">
     <a class="wordmark" href="${esc(siteUrl('index.html'))}" title="Go to the home page">${esc(settings?.site_name || 'Grassroot Archives')}</a>

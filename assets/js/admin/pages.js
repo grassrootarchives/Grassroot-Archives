@@ -4,7 +4,7 @@ import { esc } from '../ui.js';
 import { siteUrl } from '../config.js';
 import { renderBlock, BLOCK_TYPES, FIELD_LABELS } from '../blocks.js';
 import { registerPopups, wireParams } from '../params.js';
-import { hrefFor } from '../ui.js';
+import { hrefFor, menuModel, menuLinks, defaultMenuLabel } from '../ui.js';
 
 const app = document.getElementById('app');
 const { sb, user } = await requireAdmin('pages');
@@ -35,6 +35,7 @@ const main = layout(app, 'pages', user, `
     <aside class="editor__side">
       <div class="panel" data-pageset></div>
       <div class="panel" data-blockset></div>
+      <div class="panel" data-menu></div>
       <div class="panel" data-theme></div>
     </aside>
   </div>`);
@@ -48,7 +49,7 @@ function load(page) {
   status(page.draft_blocks ? 'Draft not yet published' : page.status === 'draft' ? 'Page is a draft' : 'All changes published', !!page.draft_blocks);
   history.replaceState(null, '', '?p=' + page.slug); draw();
 }
-function draw() { tabs(); lib(); outline(); preview(); pageSettings(); blockSettings(); themePanel(); $('[data-viewlive]').href = hrefFor(current, valleys?.find(v => v.status === 'published')); $('[data-history]').href = siteUrl('admin/history.html?table=pages&key=' + current.id); }
+function draw() { tabs(); lib(); outline(); preview(); pageSettings(); blockSettings(); menuPanel(); themePanel(); $('[data-viewlive]').href = hrefFor(current, valleys?.find(v => v.status === 'published')); $('[data-history]').href = siteUrl('admin/history.html?table=pages&key=' + current.id); }
 
 function tabs() {
   $('[data-tabs]').innerHTML = pages.map(p => `<button type="button" role="tab" class="chip" aria-selected="${p.id === current.id}" aria-pressed="${p.id === current.id}" data-tab="${esc(p.id)}">${esc(KIND_LABEL[p.kind] || p.title)}${p.status === 'draft' ? ' · draft' : ''}</button>`).join('') + `<button type="button" class="chip" style="border-style:dashed;font-weight:600" data-newbtn>+ New page</button>`;
@@ -84,28 +85,20 @@ function preview() {
 }
 function pageSettings() {
   const p = current, custom = p.kind === 'custom';
-  const order = pages.slice().sort((a, b) => a.menu_order - b.menu_order), idx = order.findIndex(x => x.id === p.id);
   $('[data-pageset]').innerHTML = `<h2>Page settings</h2>
     ${custom ? `<label class="field"><span>Page name</span><input data-ptitle value="${esc(p.title)}"></label>
       <label class="field"><span>Address</span><input data-pslug value="${esc(p.slug)}"><span class="hint">page.html?p=${esc(p.slug)}</span></label>` : `<div class="facts"><dt>Address</dt><dd>${esc(hrefFor(p).replace(siteUrl(''), '/'))}</dd></div>`}
-    <label class="check"><input type="checkbox" data-pmenu ${p.show_in_menu ? 'checked' : ''}> Show in site menu</label>
-    <div class="row"><button type="button" class="btn btn--small btn--quiet" data-morder="-1" ${idx <= 0 ? 'disabled' : ''}>← Earlier in menu</button><button type="button" class="btn btn--small btn--quiet" data-morder="1" ${idx >= order.length - 1 ? 'disabled' : ''}>Later in menu →</button></div>
+    <label class="check"><input type="checkbox" data-pmenu ${menu.find(i => i.page === p.slug)?.show !== false && menu.some(i => i.page === p.slug) ? 'checked' : ''}> Show in site menu</label>
+    <span class="muted" style="font-size:12px">Order and labels: <a href="#site-menu">Site menu</a>, below.</span>
     ${custom ? `<button type="button" class="btn btn--small btn--danger" data-pdel>Delete this page</button>` : `<span class="muted" style="font-size:12px">Built-in pages can be edited and hidden from the menu, but not deleted.${REQUIRED[p.kind] ? ' The template applies to every valley.' : ''}</span>`}`;
   const save = async (patch, msg) => { const { data, error } = await sb.from('pages').update(patch).eq('id', p.id).select().single(); if (error) return toast(errMsg(error), true); Object.assign(p, data); tabs(); toast(msg); };
-  $('[data-pmenu]').addEventListener('change', e => save({ show_in_menu: e.target.checked }, e.target.checked ? 'Shown in the menu.' : 'Hidden from the menu.'));
+  $('[data-pmenu]').addEventListener('change', async e => { const it = menu.find(i => i.page === p.slug); if (it) it.show = e.target.checked; else menu.push({ page: p.slug, label: '', show: e.target.checked }); await saveMenu(e.target.checked ? 'Shown in the menu.' : 'Hidden from the menu.'); });
   $('[data-ptitle]')?.addEventListener('change', e => save({ title: e.target.value.trim() || p.title }, 'Page renamed.'));
-  $('[data-pslug]')?.addEventListener('change', e => { const s = slugify(e.target.value); if (s) save({ slug: s }, 'Address changed.'); });
-  main.querySelectorAll('[data-morder]').forEach(b => b.addEventListener('click', async () => {
-    const other = order[idx + Number(b.dataset.morder)]; if (!other) return;
-    const a = p.menu_order, c = other.menu_order === a ? a + Number(b.dataset.morder) : other.menu_order;
-    const r1 = await sb.from('pages').update({ menu_order: c }).eq('id', p.id), r2 = await sb.from('pages').update({ menu_order: a }).eq('id', other.id);
-    if (r1.error || r2.error) return toast(errMsg(r1.error || r2.error), true);
-    p.menu_order = c; other.menu_order = a; pages.sort((x, y) => x.menu_order - y.menu_order); draw(); toast('Menu order changed.');
-  }));
+  $('[data-pslug]')?.addEventListener('change', async e => { const ns = slugify(e.target.value), old = p.slug; if (!ns) return; await save({ slug: ns }, 'Address changed.'); if (p.slug === ns) { menu.forEach(i => { if (i.page === old) i.page = ns; }); await saveMenu(null); } });
   $('[data-pdel]')?.addEventListener('click', async () => {
     if (!confirm(`Delete the page “${p.title}”? You can bring it back from History if needed.`)) return;
     const { error } = await sb.from('pages').delete().eq('id', p.id); if (error) return toast(errMsg(error), true);
-    pages = pages.filter(x => x.id !== p.id); dirty = false; load(pages[0]); toast('Page deleted.');
+    pages = pages.filter(x => x.id !== p.id); menu = menu.filter(i => i.page !== p.slug); await saveMenu(null); dirty = false; load(pages[0]); toast('Page deleted.');
   });
 }
 function blockSettings() {
@@ -183,6 +176,65 @@ function wireMedia(el, b) {
     }
   }));
 }
+// ---------- site menu: labels, order, show/hide, and links of your own ----------
+let menu = [], menuDirty = false;
+function menuInit() {
+  menu = structuredClone(menuModel(settings, pages)).filter(i => !i.page || pages.some(p => p.slug === i.page));
+  for (const p of pages.slice().sort((a, b) => a.menu_order - b.menu_order)) if (!menu.some(i => i.page === p.slug)) menu.push({ page: p.slug, label: '', show: false });
+}
+const firstValley = () => valleys?.find(v => v.status === 'published');
+function menuPreview() {
+  const el = $('[data-menuprev]'); if (!el) return;
+  el.innerHTML = menuLinks({ menu }, pages, firstValley()).map(l => `<span>${esc(l.label)}${l.external ? ' ↗' : ''}</span>`).join('') || '<span class="muted">The menu is empty.</span>';
+  $('[data-msave]').disabled = !menuDirty;
+}
+function menuPanel() {
+  const el = $('[data-menu]');
+  el.id = 'site-menu';
+  el.innerHTML = `<h2>Site menu · all pages</h2>
+    <div class="menu-prev" data-menuprev aria-label="How the menu will look"></div>
+    <ol class="menu-ed">${menu.map((it, i) => {
+      const p = it.page && pages.find(x => x.slug === it.page);
+      return `<li data-mi="${i}">
+        <label class="menu-ed__show" title="Show in the menu"><input type="checkbox" data-mshow ${it.show !== false ? 'checked' : ''}><span class="sr-only">Show ${esc(it.label || p?.title || 'link')} in the menu</span></label>
+        <div class="grow">
+          <input data-mlabel value="${esc(it.label || '')}" placeholder="${esc(p ? defaultMenuLabel(p) : 'Link label')}" aria-label="Menu label">
+          ${p ? `<span class="hint">Page: ${esc(p.title)}${p.status !== 'published' ? ' · draft, shows once published' : ''}</span>` : `<input data-mhref value="${esc(it.href || '')}" placeholder="https://…  or  valley.html?v=…" aria-label="Link address">`}
+        </div>
+        <div class="menu-ed__btns"><button type="button" class="btn btn--small btn--quiet" data-mmv="-1" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" class="btn btn--small btn--quiet" data-mmv="1" aria-label="Move down" ${i === menu.length - 1 ? 'disabled' : ''}>↓</button>${p ? '' : '<button type="button" class="btn btn--small btn--quiet" data-mdel aria-label="Remove link">✕</button>'}</div></li>`;
+    }).join('')}</ol>
+    <div class="row" style="gap:6px"><button type="button" class="btn btn--small btn--quiet" data-maddlink>+ Add a link</button><button type="button" class="btn btn--small btn--primary" data-msave>Save menu</button></div>
+    <span class="hint">Leave a label empty to use the page's name. A link can go to another website (it opens in a new tab), a valley (valley.html?v=mahadei), or a part of a page (about.html#contact). Saving puts the menu live on every page.</span>`;
+  menuPreview();
+  const touch = () => { menuDirty = true; menuPreview(); };
+  el.querySelectorAll('li[data-mi]').forEach(li => {
+    const it = menu[+li.dataset.mi];
+    li.querySelector('[data-mshow]').addEventListener('change', e => { it.show = e.target.checked; touch(); });
+    li.querySelector('[data-mlabel]').addEventListener('input', e => { it.label = e.target.value; touch(); });
+    li.querySelector('[data-mhref]')?.addEventListener('input', e => { it.href = e.target.value.trim(); touch(); });
+    li.querySelectorAll('[data-mmv]').forEach(b => b.addEventListener('click', () => { const i = +li.dataset.mi, j = i + Number(b.dataset.mmv); [menu[i], menu[j]] = [menu[j], menu[i]]; menuDirty = true; menuPanel(); }));
+    li.querySelector('[data-mdel]')?.addEventListener('click', () => { menu.splice(+li.dataset.mi, 1); menuDirty = true; menuPanel(); });
+  });
+  el.querySelector('[data-maddlink]').addEventListener('click', () => { menu.push({ label: '', href: '', show: true }); menuDirty = true; menuPanel(); el.querySelectorAll('[data-mlabel]')[menu.length - 1]?.focus(); });
+  el.querySelector('[data-msave]').addEventListener('click', () => saveMenu('Menu saved. It is live on every page.'));
+}
+async function saveMenu(msg) {
+  const bad = menu.find(i => !i.page && (!i.href || !(i.label || '').trim()));
+  if (bad) { toast('Every link needs a label and an address, or remove it.', true); return; }
+  const clean = menu.map(i => i.page ? { page: i.page, label: (i.label || '').trim(), show: i.show !== false } : { href: i.href.trim(), label: i.label.trim(), show: i.show !== false });
+  const { error } = await sb.from('site_settings').update({ menu: clean }).eq('id', 1);
+  if (error) { toast(errMsg(error), true); return; }
+  settings.menu = clean;
+  // Keep each page's own menu settings in step, so older parts of the site agree.
+  let n = 0;
+  for (const it of clean) {
+    if (!it.page) { n++; continue; }
+    const p = pages.find(x => x.slug === it.page); n++;
+    if (p && (p.show_in_menu !== it.show || p.menu_order !== n)) { const { error: e2 } = await sb.from('pages').update({ show_in_menu: it.show, menu_order: n }).eq('id', p.id); if (!e2) { p.show_in_menu = it.show; p.menu_order = n; } }
+  }
+  menuDirty = false; menuPanel(); pageSettings();
+  if (msg) toast(msg);
+}
 function themePanel() {
   $('[data-theme]').innerHTML = `<h2>Site theme · all pages</h2><span>Colours</span>
     ${Object.entries(PALETTES).map(([k, [l, ...c]]) => `<button type="button" class="choice" data-pal="${k}" aria-pressed="${theme.palette === k}"><span class="swatch">${c.map(x => `<span style="background:${x}"></span>`).join('')}</span>${l}</button>`).join('')}
@@ -215,7 +267,8 @@ function newPageForm() {
     const startBlocks = start === 'blank' ? [{ id: uid(), type: 'heading', size: 'page', title }] : start === 'text' ? [{ id: uid(), type: 'heading', size: 'page', title }, { id: uid(), type: 'text', body: 'Write the introduction here.' }, { id: uid(), type: 'image', image: '', body: 'Caption' }, { id: uid(), type: 'text', body: 'More text.' }] : structuredClone(src?.blocks || []).map(b => ({ ...b, id: uid() }));
     const { data, error } = await sb.from('pages').insert({ title, slug, kind: 'custom', blocks: startBlocks, show_in_menu: box.querySelector('[data-nmenu]').checked, menu_order: Math.max(0, ...pages.map(p => p.menu_order)) + 1, status: 'draft' }).select().single();
     if (error) return toast(error.message.includes('pages_slug_key') ? 'A page with that address already exists.' : errMsg(error), true);
-    pages.push(data); box.hidden = true; sel = 0; load(data); toast('Page created as a draft. Publish it when it is ready.');
+    pages.push(data); menu.push({ page: data.slug, label: '', show: box.querySelector('[data-nmenu]').checked }); await saveMenu(null);
+    box.hidden = true; sel = 0; load(data); toast('Page created as a draft. Publish it when it is ready.');
   });
   box.querySelector('[data-nname]').focus();
 }
@@ -238,4 +291,5 @@ $('[data-publish]').addEventListener('click', async () => {
   Object.assign(current, data); dirty = false; status('All changes published'); tabs(); toast('Published.');
 });
 
+menuInit();
 load(current);
