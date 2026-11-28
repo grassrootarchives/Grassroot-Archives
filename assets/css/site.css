@@ -215,7 +215,11 @@ table.index td.name { font-family: var(--font-display); font-size: 19px; }
 table.index td.num { text-align: right; }
 
 /* interactive legend */
-.mapbox__legend { max-height: calc(100% - 200px); min-height: 120px; overflow: auto; }
+/* The legend lives between the top of the map and the zoom buttons, and scrolls if it doesn't fit. */
+.mapbox__corner { bottom: 160px; pointer-events: none; }
+.mapbox__corner > * { pointer-events: auto; }
+.mapbox__legend { flex: 0 1 auto; min-height: 0; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.mapbox__legend[hidden] { display: none; }
 .lg { display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 10px; background: rgba(245,248,246,.97); border: 1px solid #CFDDE4; color: #1E2A33; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; }
 .lg__title { font-weight: 700; font-size: 12px; }
 .lg__sec { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -393,3 +397,18 @@ table.index td.num { text-align: right; }
 .drawer .flash { border-left: 3px solid var(--clay); padding: 4px 0 4px 14px; display: flex; flex-direction: column; gap: 6px; }
 .archive-valleys { display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
 .archive-valleys select { min-height: 44px; padding: 0 12px; border: 1px solid var(--ink); background: var(--surface); color: var(--ink); font: inherit; }
+
+/* Sections of the river: chips under the map, as wide as each stretch of river */
+.zonebar { display: flex; flex-direction: column; gap: 6px; }
+.zonebar__label { font-size: 11px; letter-spacing: .12em; color: var(--muted); }
+.zonebar__row { display: flex; gap: 4px; }
+.zonechip { flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-items: center; column-gap: 8px; padding: 8px 10px; min-height: 52px; text-align: left; border: 1px solid color-mix(in srgb, var(--zc) 55%, transparent); border-top: 4px solid var(--zc); background: color-mix(in srgb, var(--zc) 12%, var(--surface)); color: var(--ink); font: inherit; cursor: pointer; }
+.zonechip:hover, .zonechip:focus-visible { background: color-mix(in srgb, var(--zc) 22%, var(--surface)); }
+.zonechip.is-on { background: color-mix(in srgb, var(--zc) 30%, var(--surface)); outline: 2px solid var(--zc); outline-offset: -2px; }
+.zonechip__name { font-weight: 600; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zonechip__km { grid-column: 1; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.zonechip__i { grid-row: 1 / span 2; grid-column: 2; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-style: italic; font-family: var(--font-display); }
+@media (max-width: 720px) { .zonebar__row { flex-wrap: wrap; } .zonechip { flex: 1 1 140px !important; } }
+.zonefacts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 4px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; }
+.zonefacts dt { color: var(--muted); letter-spacing: .1em; }
+.zonefacts dd { margin: 0; }

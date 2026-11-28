@@ -303,8 +303,18 @@ function ensureDialog() {
     if (e.target === dlg || e.target.closest('[data-pclose]')) dlg.close();
     const go = e.target.closest('[data-pgo]');
     if (go) render(go.dataset.pgo);
+    const act = e.target.closest('[data-paction]');
+    if (act && infoAction) infoAction(act.dataset.paction);
   });
   dlg.addEventListener('close', () => dlg.querySelectorAll('video, audio').forEach(m => m.pause()));
+}
+// A popup built by a page itself (e.g. a river zone on the valley map). Buttons with data-paction call onAction(value).
+let infoAction = null;
+export function openInfo({ eyebrow = '', title = '', body = '', foot = '', onAction = null }) {
+  ensureDialog(); infoAction = onAction;
+  dlg.innerHTML = `<div class="pmodal__inner">${head(esc(eyebrow), esc(title))}<div class="pmodal__body">${body}</div>${foot ? `<footer class="pmodal__foot">${foot}</footer>` : ''}</div>`;
+  if (!dlg.open) dlg.showModal();
+  dlg.querySelector('.pmodal__x').focus();
 }
 export function openPopup(ref) { ensureDialog(); render(ref); if (!dlg.open) dlg.showModal(); }
 const head = (eyebrow, title) => `<header class="pmodal__head"><div>${eyebrow ? `<span class="eyebrow">${eyebrow}</span>` : ''}<h2 class="display" id="pmodal-title">${title}</h2></div>

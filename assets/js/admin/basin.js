@@ -201,10 +201,12 @@ function zonesUI() {
       <label class="field"><span class="sr-only">Zone name</span><input value="${esc(z.name)}" data-zn aria-label="Zone ${i + 1} name"></label>
       <label class="field" style="flex:0 1 140px"><span class="sr-only">From</span><input type="number" step="0.1" value="${conv(z.from)}" data-zf aria-label="Zone ${i + 1} starts at (${unit})"></label>
       <label class="field" style="flex:0 1 140px"><span class="sr-only">To</span><input type="number" step="0.1" value="${conv(z.to)}" data-zt aria-label="Zone ${i + 1} ends at (${unit})"></label>
-      <span class="muted">${unit}</span><button type="button" class="btn btn--small btn--quiet" data-zdel aria-label="Remove zone ${i + 1}">✕</button></div>`).join('');
+      <span class="muted">${unit}</span><button type="button" class="btn btn--small btn--quiet" data-zdel aria-label="Remove zone ${i + 1}">✕</button>
+      <label class="field" style="flex-basis:100%"><span class="sr-only">Zone ${i + 1} explanation</span><textarea data-zd rows="2" placeholder="Explanation shown under the map (optional). Left empty, a standard explanation for ${esc(z.name || 'this zone')} is used.">${esc(z.description || '')}</textarea></label></div>`).join('');
   $('[data-zones]').querySelectorAll('[data-zone]').forEach(row => {
     const i = Number(row.dataset.zone), back = x => km ? Number(x) / km : Number(x) / 100;
     row.querySelector('[data-zn]').addEventListener('input', e => zones[i].name = e.target.value);
+    row.querySelector('[data-zd]').addEventListener('input', e => { zones[i].description = e.target.value; });
     row.querySelector('[data-zf]').addEventListener('input', e => zones[i].from = Math.max(0, Math.min(1, back(e.target.value))));
     row.querySelector('[data-zt]').addEventListener('input', e => zones[i].to = Math.max(0, Math.min(1, back(e.target.value))));
     row.querySelector('[data-zdel]').addEventListener('click', () => { zones.splice(i, 1); zonesUI(); if (S.grid) preview(); });

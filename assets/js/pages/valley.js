@@ -1,5 +1,7 @@
 // Valley map page: map, filters, telemetry, layers, legend, profile and the story drawer.
-import { wireParams } from '../params.js';
+import { wireParams, openInfo } from '../params.js';
+import { ZONE_COLORS } from '../geo/zones.js';
+import { zoneText } from '../zoneinfo.js';
 import { boot, shell, setMeta, drawThumbs } from './common.js';
 import { getValley, getStories, getPageBy, loadValleyData, dataUrl, storyCounts } from '../db.js';
 import { renderBlocks } from '../blocks.js';
@@ -39,6 +41,12 @@ try {
 function render(site, valley, template, stories, data) {
   const zones = (valley.zones || []).map(z => z.name);
   const totalKm = valley.river_length_km || (valley.profile?.length ? valley.profile.at(-1)[0] : null);
+  const zoneList = (valley.zones || []).filter(z => z && z.name);
+  const kmAt = f => totalKm ? Math.round(f * totalKm) : null;
+  const zoneBar = () => zoneList.length ? `<div class="zonebar" role="group" aria-label="Sections of the river: choose one for an explanation">
+      <span class="zonebar__label">SECTIONS OF THE RIVER · TAP FOR AN EXPLANATION</span>
+      <div class="zonebar__row">${zoneList.map((z, i) => `<button type="button" class="zonechip" data-zone-i="${i}" aria-haspopup="dialog" style="--zc:${ZONE_COLORS[i % ZONE_COLORS.length]};flex-grow:${Math.max(0.1, (z.to ?? 1) - (z.from ?? 0)).toFixed(3)}">
+        <span class="zonechip__name">${esc(z.name)}</span><span class="zonechip__km">${totalKm ? `km ${kmAt(z.from ?? 0)}–${kmAt(z.to ?? 1)}` : `${Math.round((z.from ?? 0) * 100)}–${Math.round((z.to ?? 1) * 100)}%`}</span><span class="zonechip__i" aria-hidden="true">i</span></button>`).join('')}</div></div>` : '';
   const style = STYLES[valley.map_style] ? valley.map_style : 'contour';
   const slot = `
   <div class="mapapp">
@@ -73,7 +81,9 @@ function render(site, valley, template, stories, data) {
         ${(valley.source_credit || valley.layers_credit) ? `<div class="mapbox__credit" data-credit>MAP DATA: ${esc(valley.source_credit || '')}${valley.layers_credit ? ' · ' + esc(valley.layers_credit) : ''}</div>` : ''}
         <div class="mapbox__zoom" data-zoombar><button type="button" aria-label="Zoom in" data-zoom="in">+</button><button type="button" aria-label="Zoom out" data-zoom="out">−</button><button type="button" aria-label="Reset view" data-zoom="reset" style="font-size:14px">⟲</button></div>
       </div>
+      ${zoneList.length && !valley.profile?.length ? `<section class="profile" aria-label="Sections of the river">${zoneBar()}</section>` : ''}
       ${valley.profile?.length ? `<section class="profile" aria-label="Longitudinal profile">
+        ${zoneBar()}
         <div class="profile__head"><strong>LONGITUDINAL PROFILE</strong><span class="muted">SOURCE ${fmtM(valley.profile[0][1])} · km 0 → MOUTH ${fmtM(valley.profile.at(-1)[1])} · km ${fmtKm(totalKm)}</span></div>
         <div class="profile__plot" data-profile></div></section>` : ''}
     </div>
@@ -116,7 +126,7 @@ function render(site, valley, template, stories, data) {
     state[group.dataset.filter] = b.dataset.value;
     group.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
     const dim = stories.filter(s => !matches(s)).map(s => s.id);
-    [map, real].forEach(m => { m?.setDim(dim); if (group.dataset.filter === 'zone') m?.setZone?.(state.zone); }); drawProfile();
+    [map, real].forEach(m => { m?.setDim(dim); if (group.dataset.filter === 'zone') m?.setZone?.(state.zone); }); drawProfile(); markZone?.();
   }));
   // Legend with on/off switches.
   let view = map, real = null;
@@ -167,7 +177,8 @@ function render(site, valley, template, stories, data) {
   // Legend & zoom.
   const lt = app.querySelector('[data-legend-toggle]'), lg = app.querySelector('[data-legend]');
   lt.addEventListener('click', () => { lg.hidden = !lg.hidden; lt.setAttribute('aria-expanded', !lg.hidden); lt.textContent = lg.hidden ? 'LEGEND ▸' : 'LEGEND ▾'; });
-  if (window.matchMedia('(max-width: 720px)').matches) lt.click();
+  // Start folded on phones and on maps too short to show the legend comfortably; it opens with one tap.
+  if (window.matchMedia('(max-width: 720px)').matches || (app.querySelector('.mapbox')?.offsetHeight || 0) < 420) lt.click();
   app.querySelectorAll('[data-zoom]').forEach(b => b.addEventListener('click', () => ({ in: () => map.zoomIn(), out: () => map.zoomOut(), reset: () => map.reset() })[b.dataset.zoom]()));
 
   // Profile.
@@ -176,7 +187,8 @@ function render(site, valley, template, stories, data) {
     const p = valley.profile, maxKm = p.at(-1)[0] || 1, hi = p[0][1], lo = Math.min(...p.map(x => x[1]));
     const y = e => 6 + (hi - e) / ((hi - lo) || 1) * 60;
     const pts = p.map(([k, e]) => `${(k / maxKm * 1000).toFixed(1)},${y(e).toFixed(1)}`).join(' ');
-    el.innerHTML = `<svg viewBox="0 0 1000 72" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,72 ${pts} 1000,72" fill="var(--green)"/><polyline points="${pts}" fill="none" stroke="var(--river)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>` +
+    const bands = zoneList.map((z, i) => `<rect x="${((z.from ?? 0) * 1000).toFixed(1)}" y="0" width="${(((z.to ?? 1) - (z.from ?? 0)) * 1000).toFixed(1)}" height="72" fill="${ZONE_COLORS[i % ZONE_COLORS.length]}" fill-opacity="${state.zone === z.name ? 0.22 : 0.08}"/>`).join('');
+    el.innerHTML = `<svg viewBox="0 0 1000 72" preserveAspectRatio="none" aria-hidden="true">${bands}<polygon points="0,72 ${pts} 1000,72" fill="var(--green)"/><polyline points="${pts}" fill="none" stroke="var(--river)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>` +
       stories.filter(s => s.river_km != null).map(s => {
         const e = s.elevation ?? p.reduce((a, b) => Math.abs(b[0] - s.river_km) < Math.abs(a[0] - s.river_km) ? b : a)[1];
         return `<button type="button" class="${state.open === s.id ? 'is-active' : ''} ${matches(s) ? '' : 'is-dim'}" style="left:${(s.river_km / maxKm * 100).toFixed(2)}%;top:${y(e).toFixed(1)}px" aria-label="Story ${pad(s.number)} on the profile: ${esc(s.place)}" data-id="${esc(s.id)}"><span></span></button>`;
@@ -189,6 +201,53 @@ function render(site, valley, template, stories, data) {
     });
   }
   drawProfile();
+
+  // Sections of the river: each chip explains its zone and can show it on the map.
+  function zoneFacts(i) {
+    const z = zoneList[i], p = valley.profile || [], f0 = z.from ?? 0, f1 = z.to ?? 1, maxKm = p.at(-1)?.[0] || totalKm || 1;
+    const elevAt = f => { if (!p.length) return null; const k = f * maxKm; return p.reduce((a, b) => Math.abs(b[0] - k) < Math.abs(a[0] - k) ? b : a)[1]; };
+    const e0 = elevAt(f0), e1 = elevAt(f1), km = totalKm ? (f1 - f0) * totalKm : null;
+    return { z, f0, f1, e0, e1, km, drop: e0 != null && e1 != null ? e0 - e1 : null, n: stories.filter(s => s.zone === z.name).length };
+  }
+  function zoneFigure(i) {
+    const p = valley.profile || []; if (p.length < 2) return '';
+    const { f0, f1 } = zoneFacts(i), maxKm = p.at(-1)[0] || 1, hi = Math.max(...p.map(x => x[1])), lo = Math.min(...p.map(x => x[1]));
+    const X = k => 40 + k / maxKm * 460, Y = e => 20 + (hi - e) / ((hi - lo) || 1) * 150;
+    const line = p.map(([k, e]) => `${X(k).toFixed(1)},${Y(e).toFixed(1)}`).join(' ');
+    const seg = p.filter(([k]) => k >= f0 * maxKm - 1e-9 && k <= f1 * maxKm + 1e-9);
+    const area = seg.length > 1 ? `${X(seg[0][0]).toFixed(1)},190 ${seg.map(([k, e]) => `${X(k).toFixed(1)},${Y(e).toFixed(1)}`).join(' ')} ${X(seg.at(-1)[0]).toFixed(1)},190` : '';
+    const c = ZONE_COLORS[i % ZONE_COLORS.length];
+    return `<figure class="pfig"><div class="pfig__frame"><svg viewBox="0 0 520 230" class="pfig__svg" role="img" aria-label="Elevation along the river, with ${esc(zoneList[i].name)} highlighted">
+      <path d="M40 20 V190 H500" class="ln" fill="none"/>
+      ${zoneList.map((z, j) => `<rect x="${X((z.from ?? 0) * maxKm).toFixed(1)}" y="20" width="${(X((z.to ?? 1) * maxKm) - X((z.from ?? 0) * maxKm)).toFixed(1)}" height="170" fill="${ZONE_COLORS[j % ZONE_COLORS.length]}" fill-opacity="${j === i ? 0.16 : 0.05}"/>`).join('')}
+      ${area ? `<polygon points="${area}" fill="${c}" fill-opacity=".45"/>` : ''}
+      <polyline points="${line}" class="lq" fill="none"/>
+      <path d="M${X(f0 * maxKm).toFixed(1)} 14 V196 M${X(f1 * maxKm).toFixed(1)} 14 V196" class="ln dash thin"/>
+      <text x="40" y="12" class="tx">ELEVATION (m)</text><text x="44" y="${Y(hi) + 12}" class="tx">${Math.round(hi)}</text><text x="44" y="186" class="tx">${Math.round(lo)}</text>
+      <text x="40" y="212" class="tx">km 0 · SOURCE</text><text x="500" y="212" class="tx" text-anchor="end">km ${fmtKm(totalKm)} · MOUTH</text>
+      <text x="${((X(f0 * maxKm) + X(f1 * maxKm)) / 2).toFixed(1)}" y="226" class="tb" text-anchor="middle" fill="${c}" style="fill:${c}">${esc(zoneList[i].name.toUpperCase())}</text>
+    </svg></div><figcaption><span>PROFILE</span> where this section sits along the river</figcaption></figure>`;
+  }
+  function openZone(i) {
+    const n = zoneList.length, k = ((i % n) + n) % n, f = zoneFacts(k), t = zoneText(f.z);
+    const fact = (l, v) => v == null ? '' : `<dt>${l}</dt><dd>${v}</dd>`;
+    openInfo({
+      eyebrow: `${valley.name} · section ${k + 1} of ${n}`, title: f.z.name,
+      body: `<div class="pmodal__text"><span class="label">What this section is</span><p>${esc(t.what)}</p>${t.look ? `<span class="label">What to look for</span><p>${esc(t.look)}</p>` : ''}
+        <dl class="zonefacts">${fact('RIVER', totalKm ? `km ${fmtKm(f.f0 * totalKm)} – ${fmtKm(f.f1 * totalKm)} (${fmtKm(f.km)} km)` : `${Math.round(f.f0 * 100)}–${Math.round(f.f1 * 100)}% of its length`)}${fact('ELEVATION', f.e0 != null ? `${fmtM(f.e0)} → ${fmtM(f.e1)}` : null)}${fact('FALL', f.drop != null && f.km ? `${Math.round(f.drop)} m · ${(f.drop / f.km).toFixed(1)} m per km` : null)}${fact('STORIES', `${f.n} in the archive`)}</dl></div>${zoneFigure(k)}`,
+      foot: `<button type="button" class="btn btn--quiet btn--small" data-paction="prev">← ${esc(zoneList[(k - 1 + n) % n].name)}</button><button type="button" class="btn btn--small btn--primary" data-paction="show">Show on the map</button><button type="button" class="btn btn--quiet btn--small" data-paction="next">${esc(zoneList[(k + 1) % n].name)} →</button>`,
+      onAction: a => {
+        if (a === 'prev') openZone(k - 1); else if (a === 'next') openZone(k + 1);
+        else if (a === 'show') {
+          document.querySelector('dialog.pmodal')?.close();
+          app.querySelector(`[data-filter="zone"] [data-value="${CSS.escape(f.z.name)}"]`)?.click();
+          app.querySelector('.mapbox')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    });
+  }
+  app.querySelectorAll('[data-zone-i]').forEach(b => b.addEventListener('click', () => openZone(+b.dataset.zoneI)));
+  const markZone = () => app.querySelectorAll('[data-zone-i]').forEach(b => b.classList.toggle('is-on', zoneList[+b.dataset.zoneI]?.name === state.zone));
 
   // Drawer.
   const drawerRoot = app.querySelector('[data-drawer]');
