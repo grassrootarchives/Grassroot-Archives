@@ -186,7 +186,9 @@ function thumbs() {
 // ---------- 02 details ----------
 const nameI = $('[data-name]'), slugI = $('[data-slug]');
 nameI.addEventListener('input', () => { if (slugI.dataset.auto) { slugI.value = slugify(nameI.value); $('[data-slugshow]').textContent = slugI.value; } });
-slugI.addEventListener('input', () => { delete slugI.dataset.auto; slugI.value = slugify(slugI.value); $('[data-slugshow]').textContent = slugI.value; });
+// A pasted link (".../valley.html?v=mahadei") keeps only the address after v=.
+const fromLink = s => { const m = String(s).match(/[?&]v=([^&#\s]+)/); return m ? decodeURIComponent(m[1]) : s; };
+slugI.addEventListener('input', () => { delete slugI.dataset.auto; slugI.value = slugify(fromLink(slugI.value)); $('[data-slugshow]').textContent = slugI.value; });
 $('[data-interval]').addEventListener('change', () => { preview(); });
 let zones = (v.zones || []).map(z => ({ ...z }));
 function zonesUI() {
