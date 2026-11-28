@@ -34,7 +34,14 @@ export async function listValleys() {
 
 export async function getValley(slug) {
   const sb = await supabase();
-  return check(await sb.from('valleys').select('*').eq('slug', slug).maybeSingle());
+  const v = check(await sb.from('valleys').select('*').eq('slug', slug).maybeSingle());
+  // An address made from a pasted link ("grassrootarchives-org-valley-html-v-mahadei") still finds "mahadei",
+  // and the address bar is tidied to the short form.
+  const short = !v && /-v-([a-z0-9-]+)$/.exec(slug || '')?.[1];
+  if (!short) return v;
+  const w = check(await sb.from('valleys').select('*').eq('slug', short).maybeSingle());
+  if (w) { const u = new URL(location.href); u.searchParams.set('v', w.slug); history.replaceState(null, '', u); }
+  return w;
 }
 
 export async function getStories(valleyId) {
